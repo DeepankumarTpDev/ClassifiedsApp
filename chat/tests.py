@@ -96,3 +96,4 @@ class ChatModelTest(TestCase):
         chat2 = Chat.objects.create(sender=self.receiver, receiver=self.sender, message='Reply to first conversation.')
 
         self.assertNotEqual(chat1.conversation_id, chat2.conversation_id)  
+

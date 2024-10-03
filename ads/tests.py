@@ -333,3 +333,4 @@ class AdsModelTest(TestCase):
             len(b"image data"),  
             None  
         )
+

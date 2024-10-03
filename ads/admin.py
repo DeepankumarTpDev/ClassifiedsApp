@@ -16,5 +16,3 @@ class AdsAdmin(admin.ModelAdmin):
     list_filter = ('category', 'created_at')
     search_fields = ('title', 'description', 'tags', 'location')
     ordering = ('-created_at',)
-
-
