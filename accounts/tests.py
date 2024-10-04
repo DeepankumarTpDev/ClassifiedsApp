@@ -21,7 +21,6 @@ class ProfileModelTest(TestCase):
             user=self.user,
             date_of_birth=date(1990, 1, 1),  
             phone_number='1234567890',
-            user_type='buyer',
             address='Test Address'
         )
 
@@ -32,7 +31,7 @@ class ProfileModelTest(TestCase):
         """Test creating a profile with empty required fields."""
         
         with self.assertRaises(IntegrityError):
-            Profile.objects.create(user=self.user, date_of_birth=None, phone_number='', user_type='buyer', address='Test Address')
+            Profile.objects.create(date_of_birth=None, phone_number='', address='Test Address')
 
 
     def test_date_of_birth_validation(self):
@@ -51,7 +50,6 @@ class ProfileModelTest(TestCase):
             user=self.user,
             date_of_birth=date(1990, 1, 1),  
             phone_number='1234567890123456',  
-            user_type='buyer',
             address='Test Address'
         )
 
@@ -65,7 +63,6 @@ class ProfileModelTest(TestCase):
             user=self.user,
             date_of_birth=date(1990, 1, 1),  
             phone_number='1234567890',
-            user_type='buyer',
             address='Test Address'
         )
         
@@ -79,7 +76,6 @@ class ProfileModelTest(TestCase):
             user=self.user,
             date_of_birth=date(1990, 1, 1),  
             phone_number='1234567890',
-            user_type='buyer',
             address='Test Address'
         )
         

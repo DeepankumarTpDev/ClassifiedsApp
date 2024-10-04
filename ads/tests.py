@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.text import slugify
 from io import BytesIO
+from django.contrib.auth.models import User
 
 class CategoryModelTest(TestCase):
     """
@@ -95,12 +96,14 @@ class AdsModelTest(TestCase):
     def setUp(self):
         """Create a category for use in ad tests."""
 
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
         self.category = Category.objects.create(name="Test Category")
 
     def test_create_ads_with_valid_data(self):
         """Test that an ad can be created with valid data, and its slug is generated correctly."""
 
         ad = Ads.objects.create(
+            user=self.user,
             title="Test Ad",
             category=self.category,
             description="This is a test ad.",
@@ -113,11 +116,26 @@ class AdsModelTest(TestCase):
         self.assertIsNotNone(ad.id)  
         self.assertEqual(ad.slug, slugify(ad.title))  
 
+    def test_create_ads_without_user_field(self):
+        """Test that an ad raise error when created without user field."""
+        with self.assertRaises(IntegrityError):
+            Ads.objects.create(
+                title="Test Ad",
+                category=self.category,
+                description="This is a test ad.",
+                location="Test Location",
+                postal_code="12345",
+                contact_info="test@example.com",
+                price=99.99,
+                image=self.create_image()
+            )
+
     def test_ads_without_title(self):
         """Test that attempting to create an ad without a title raises a ValidationError."""
 
         with self.assertRaises(ValidationError):
             ad = Ads(
+                user=self.user,
                 category=self.category,
                 description="This ad has no title.",
                 location="Test Location",
@@ -133,6 +151,7 @@ class AdsModelTest(TestCase):
 
         with self.assertRaises(IntegrityError):
             ad = Ads(
+                user=self.user,
                 title="Ad without Category",
                 description="This ad has no category.",
                 location="Test Location",
@@ -147,6 +166,7 @@ class AdsModelTest(TestCase):
         """Test that the slug is generated correctly based on the ad title upon creation."""
         
         ad = Ads.objects.create(
+            user=self.user,
             title="Slug Test",
             category=self.category,
             description="This ad tests slug generation.",
@@ -162,6 +182,7 @@ class AdsModelTest(TestCase):
         """Test that attempting to create an ad with a negative price raises a ValidationError."""
 
         ad = Ads(
+            user=self.user,
             title="Invalid Price Ad",
             category=self.category,
             description="This ad has an invalid price.",
@@ -179,6 +200,7 @@ class AdsModelTest(TestCase):
         """Test that attempting to create an ad with a postal code longer than 10 characters raises a ValidationError."""
         
         ad = Ads(
+            user=self.user,
             title="Long Postal Code Ad",
             category=self.category,
             description="This ad has a long postal code.",
@@ -196,6 +218,7 @@ class AdsModelTest(TestCase):
         """Test that attempting to create an ad with a postal code lesser than 5 characters raises a ValidationError."""
         
         ad = Ads(
+            user=self.user,
             title="Long Postal Code Ad",
             category=self.category,
             description="This ad has a long postal code.",
@@ -212,6 +235,7 @@ class AdsModelTest(TestCase):
     def test_show_contact_info_default(self):
         """Test that the default value for show_contact_info is True when an ad is created."""
         ad = Ads.objects.create(
+            user=self.user,
             title="Default Show Contact",
             category=self.category,
             description="This ad checks default show contact info.",
@@ -227,6 +251,7 @@ class AdsModelTest(TestCase):
         """Test that the end date is greater than the start date when both are set."""
 
         ad = Ads.objects.create(
+            user=self.user,
             title="Event Ad",
             category=self.category,
             description="This ad has event dates.",
@@ -245,6 +270,7 @@ class AdsModelTest(TestCase):
            date raises a ValidationError."""
         
         ad = Ads(
+            user=self.user,
             title="Invalid Event Ad",
             category=self.category,
             description="This ad has invalid event dates.",
@@ -264,6 +290,7 @@ class AdsModelTest(TestCase):
         """Test that the created_at timestamp is set automatically upon ad creation."""
 
         ad = Ads.objects.create(
+            user=self.user,
             title="Timestamp Ad",
             category=self.category,
             description="This ad checks timestamp fields.",
@@ -279,6 +306,7 @@ class AdsModelTest(TestCase):
         """Test that tags can be added to an ad successfully."""
 
         ad = Ads.objects.create(
+            user=self.user,
             title="Taggable Ad",
             category=self.category,
             description="This ad supports tags.",
@@ -295,6 +323,7 @@ class AdsModelTest(TestCase):
         """Test that the image field is correctly populated with an uploaded image."""
 
         ad = Ads.objects.create(
+            user=self.user,
             title="Image Ad",
             category=self.category,
             description="This ad has an image.",
@@ -310,6 +339,7 @@ class AdsModelTest(TestCase):
         """Test that an ad without an image raises a ValidationError."""
 
         ad = Ads(
+            user=self.user,
             title="Image Ad",
             category=self.category,
             description="This ad has an image.",

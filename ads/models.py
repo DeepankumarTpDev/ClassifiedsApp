@@ -3,7 +3,7 @@ from django.utils.text import slugify
 from django.urls import reverse
 from taggit.managers import TaggableManager
 from django.core.exceptions import ValidationError
-
+from django.contrib.auth.models import User
 
 class Category(models.Model):
     name = models.CharField(max_length=255, unique=True, blank=False)  
@@ -21,6 +21,7 @@ class Category(models.Model):
 
 
 class Ads(models.Model):
+    user = models.ForeignKey(User, related_name='ads_posted', blank=False, null=False, on_delete=models.CASCADE)
     title = models.CharField(max_length=255, blank=False, null=False)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     slug = models.SlugField(max_length=255, unique=True, blank=True)

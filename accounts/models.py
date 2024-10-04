@@ -6,16 +6,10 @@ from django.utils import timezone
 
 
 class Profile(models.Model):
-    USER_TYPE_CHOICES = [
-        ('buyer', 'Buyer'),
-        ('seller', 'Seller'),
-    ]
-     
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     date_of_birth = models.DateField(blank=False, null=False)
     photo = models.ImageField(upload_to='users/%Y/%m/%d/', blank=True, null=True)
     phone_number = models.CharField(max_length=15, blank=False, null=False)
-    user_type = models.CharField(max_length=10, blank=False, choices=USER_TYPE_CHOICES)
     address = models.TextField(blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
