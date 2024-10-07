@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.urls import reverse
 from .models import Category, Ads
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
@@ -363,4 +364,150 @@ class AdsModelTest(TestCase):
             len(b"image data"),  
             None  
         )
+
+
+class HomeViewTests(TestCase):
+    def setUp(self):
+        self.categories = []
+        for i in range(15):  # Creating 15 categories
+            category = Category.objects.create(name=f'Category {i+1}', slug=f'category-{i+1}')
+            self.categories.append(category)
+
+    def test_home_view_status_code(self):
+        response = self.client.get(reverse('ads:home'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_home_view_context_contains_categories(self):
+        response = self.client.get(reverse('ads:home'))
+        self.assertIn('categories', response.context)
+
+    def test_home_view_template_used(self):
+        response = self.client.get(reverse('ads:home'))
+        self.assertTemplateUsed(response, 'ads/home.html')
+
+    def test_pagination_links(self):
+        response = self.client.get(reverse('ads:home') + '?page=1')
+        self.assertContains(response, 'First')
+        self.assertContains(response, 'Previous')
+        self.assertContains(response, 'Next')
+        self.assertContains(response, 'Last')
+        self.assertContains(response, '<span class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded">1<span class="sr-only">(current)</span></span>', html=True)
+
+        response = self.client.get(reverse('ads:home') + '?page=2')
+        self.assertContains(response, 'Previous')  
+        self.assertContains(response, 'Next')      
+        self.assertContains(response, '<span class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded">2<span class="sr-only">(current)</span></span>', html=True)
+
+    def test_pagination_edge_cases(self):
+        response = self.client.get(reverse('ads:home') + '?page=3') 
+        self.assertContains(response, 'Previous')  
+        self.assertContains(response, '<span class="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-200 rounded">Next</span>', html=True)
+        self.assertContains(response, 'First')
+        self.assertContains(response, '<span class="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-200 rounded">Last</span>', html=True)
+
+    def test_no_categories_pagination(self):
+        
+        Category.objects.all().delete()
+        response = self.client.get(reverse('ads:home') + '?page=1')
+        self.assertContains(response, 'No categories available')
+
+
+class AdsListViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        self.category = Category.objects.create(name='Test Category', slug='test-category')
+        self.ads = [
+            Ads.objects.create(user=self.user ,title=f'Test Ad {i}', slug=f'test-ad-{i}', category=self.category, price=100 + i, image='test_image.jpg')
+            for i in range(1, 21)
+        ]
+    def test_ads_list_view_status_code(self):
+        response = self.client.get(reverse('ads:ads_by_category', args=[self.category.slug]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_ads_list_view_with_valid_category(self):
+        ad=Ads.objects.create(user=self.user ,title=f'Test Ad ', slug=f'test-ad', category=self.category, price=100, image='test_image.jpg')
+            
+        response = self.client.get(reverse('ads:ads_by_category', args=[self.category.slug]))
+        self.assertIn(ad, response.context['ads'])
+
+    def test_ads_list_view_with_invalid_category(self):
+        response = self.client.get(reverse('ads:ads_by_category', args=['invalid-slug']))
+        self.assertEqual(response.status_code, 404)
+
+    def test_ads_list_view_template_used(self):
+        response = self.client.get(reverse('ads:ads_by_category', args=[self.category.slug]))
+        self.assertTemplateUsed(response, 'ads/ads_list.html')
+
+    def test_pagination_links(self):
+        response = self.client.get(reverse('ads:ads_by_category', args=[self.category.slug]) + '?page=1')
+        self.assertContains(response, 'First')
+        self.assertContains(response, 'Previous')
+        self.assertContains(response, 'Next')
+        self.assertContains(response, 'Last')
+
+        self.assertContains(response, '<span class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded">1<span class="sr-only">(current)</span></span>', html=True)
+
+        response = self.client.get(reverse('ads:ads_by_category', args=[self.category.slug]) + '?page=2')
+        self.assertContains(response, 'Previous')  
+        self.assertContains(response, 'Next')      
+        self.assertContains(response, '<span class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded">2<span class="sr-only">(current)</span></span>', html=True)
+
+    def test_pagination_edge_cases(self):
+        response = self.client.get(reverse('ads:ads_by_category', args=[self.category.slug]) + '?page=4')
+        self.assertContains(response, 'Previous')  
+        self.assertContains(response, '<span class="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-200 rounded">Next</span>', html=True)   
+
+        self.assertContains(response, 'First')
+        self.assertContains(response, '<span class="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-200 rounded">Last</span>', html=True)
+
+    def test_no_ads_pagination(self):
+        empty_category = Category.objects.create(name='Empty Category', slug='empty-category')
+        response = self.client.get(reverse('ads:ads_by_category', args=[empty_category.slug]) + '?page=1')
+        self.assertContains(response, 'No ads available')
+
+
+class AdDetailViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        self.category = Category.objects.create(name='Test Category', slug='test-category')
+        self.ad = Ads.objects.create(user=self.user, title='Test Ad', slug='test-ad',tags='ex', category=self.category, price=100.0, image='test_image.jpg', event_start_date="2024-12-01T10:00:00Z", event_end_date="2024-12-02T10:00:00Z")
+
+    def test_ad_detail_view_status_code(self):
+        response = self.client.get(reverse('ads:ad_detail', args=[self.category.slug, self.ad.slug]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_ad_detail_view_with_valid_slugs(self):
+        response = self.client.get(reverse('ads:ad_detail', args=[self.category.slug, self.ad.slug]))
+        self.assertEqual(response.context['ad'], self.ad)
+
+    def test_ad_detail_view_with_invalid_ad_slug(self):
+        response = self.client.get(reverse('ads:ad_detail', args=[self.category.slug, 'invalid-ad-slug']))
+        self.assertEqual(response.status_code, 404)
+
+    def test_ad_detail_view_with_invalid_category_slug(self):
+        response = self.client.get(reverse('ads:ad_detail', args=['invalid-category', self.ad.slug]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_ad_detail_view_template_used(self):
+        response = self.client.get(reverse('ads:ad_detail', args=[self.category.slug, self.ad.slug]))
+        self.assertTemplateUsed(response, 'ads/ad_detail.html')
+
+    def test_ad_detail_view_event_dates_display(self):
+        category = Category.objects.create(name='Events', slug='events')
+        ad = Ads.objects.create(
+            user=self.user,
+            title='Test Ad',
+            slug='test-a',
+            tags='ex',
+            category=category,  
+            price=100.0,
+            image='test_image.jpg',
+            event_start_date="2024-12-01T10:00:00Z",
+            event_end_date="2024-12-02T10:00:00Z"
+        )
+
+        response = self.client.get(reverse('ads:ad_detail', args=[category.slug, ad.slug]))
+        
+        self.assertContains(response, 'Event Start:')
+        self.assertContains(response, 'Event End:')
 

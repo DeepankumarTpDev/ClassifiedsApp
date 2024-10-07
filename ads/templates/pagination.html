@@ -1,0 +1,60 @@
+{% if is_paginated %}
+  <nav aria-label="Topics pagination" class="my-8">  <!-- Adjusted margin for better spacing -->
+    <ul class="flex justify-center space-x-2">
+      {% if page_obj.number > 1 %}
+        <li>
+          <a class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700" href="?page=1">First</a>
+        </li>
+      {% else %}
+        <li>
+          <span class="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-200 rounded">First</span>
+        </li>
+      {% endif %}
+
+      {% if page_obj.has_previous %}
+        <li>
+          <a class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        </li>
+      {% else %}
+        <li>
+          <span class="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-200 rounded">Previous</span>
+        </li>
+      {% endif %}
+
+      {% for page_num in paginator.page_range %}
+        {% if page_obj.number == page_num %}
+          <li>
+            <span class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded">
+              {{ page_num }}
+              <span class="sr-only">(current)</span>
+            </span>
+          </li>
+        {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+          <li>
+            <a class="px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-gray-300 rounded hover:bg-gray-100" href="?page={{ page_num }}">{{ page_num }}</a>
+          </li>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <li>
+          <a class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700" href="?page={{ page_obj.next_page_number }}">Next</a>
+        </li>
+      {% else %}
+        <li>
+          <span class="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-200 rounded">Next</span>
+        </li>
+      {% endif %}
+
+      {% if page_obj.number != paginator.num_pages %}
+        <li>
+          <a class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700" href="?page={{ paginator.num_pages }}">Last</a>
+        </li>
+      {% else %}
+        <li>
+          <span class="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-200 rounded">Last</span>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mx-auto mt-8">
+
+    <h1 class="text-3xl font-bold text-gray-800">{{ ad.title }}</h1>
+
+    <div class="mt-6">
+        <img src="{{ ad.image.url }}" alt="{{ ad.title }}" class="w-full h-auto max-h-[500px] object-contain rounded-lg shadow-md">
+    </div>    
+
+    <p class="mt-6 text-gray-600">{{ ad.description }}</p>
+
+    <p class="mt-2 text-gray-600"><strong>Location:</strong> {{ ad.location }}</p>
+
+    {% if ad.category.name == 'Rentals' or ad.category.name == 'Jobs' %}
+        <p class="mt-2 text-gray-600"><strong>Monthly Rate:</strong> ₹{{ ad.price }} / month</p>
+    {% else %}
+        <p class="mt-2 text-gray-600"><strong>Price:</strong> ₹{{ ad.price }}</p>
+    {% endif %}
+    
+
+    <p class="mt-2 text-gray-600"><strong>Posted on:</strong> {{ ad.created_at|date:"F j, Y" }}</p>
+
+    <p class="mt-2 text-gray-600"><strong>Posted by:</strong> {{ ad.user.username }}</p>
+
+    {% if ad.show_contact_info %}
+    <p class="mt-4 text-gray-600"><strong>Contact Info:</strong> {{ ad.contact_info }}</p>
+    {% endif %}
+
+    {% if ad.category.name == 'Events' or ad.category.name == 'Classes' %}
+        <p class="mt-2 text-gray-600"><strong>Event Start:</strong> {{ ad.event_start_date }}</p>
+        <p class="mt-2 text-gray-600"><strong>Event End:</strong> {{ ad.event_end_date }}</p>
+    {% endif %}
+
+    <div class="mt-6 flex space-x-4">
+        <button type="button" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition duration-200">Like</button>
+    </div>
+
+    <div class="mt-8">
+        <h3 class="text-xl font-bold mb-2">Message the Seller</h3>
+        <button type="button" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition duration-200">Send Message</button>
+    </div>
+</div>
+{% endblock %}

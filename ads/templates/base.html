@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>{% block title %}Classifieds{% endblock %}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body class="bg-gray-50">
+
+    <nav class="bg-white shadow-lg mb-6">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <a href="{% url 'ads:home' %}" class="text-2xl font-bold text-blue-700 hover:text-blue-900 transition duration-200">
+                    Classifieds
+                </a>
+                <div class="flex items-center">
+                    <a href="{% url 'ads:home' %}" class="text-gray-700 hover:text-blue-600 ml-6">Home</a>
+                    <a href="#" class="text-gray-700 hover:text-blue-600 ml-6">Post Ad</a>
+                    <a href="#" class="text-gray-700 hover:text-blue-600 ml-6">Login</a>
+                    <a href="#" class="text-gray-700 hover:text-blue-600 ml-6">Register</a>
+                    {% if user.is_authenticated %}
+                        <a href="#" class="text-gray-700 hover:text-blue-600 ml-4">Messages</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    
+    <div class="container mx-auto px-6 py-8">
+        {% block content %}
+        
+        {% endblock %}
+    </div>
+
+    
+    <footer class="bg-white border-t mt-12">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center text-gray-600">
+                <p>&copy; 2024 Classifieds. All Rights Reserved.</p>
+                <div>
+                    <a href="#" class="hover:text-blue-600 ml-4">Terms</a>
+                    <a href="#" class="hover:text-blue-600 ml-4">Privacy</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>
