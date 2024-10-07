@@ -1,6 +1,6 @@
 from django.views.generic import ListView, DetailView
 from .models import Ads, Category
-from django.http import Http404
+from django.shortcuts import get_object_or_404
 
 
 class HomeView(ListView):
@@ -17,11 +17,8 @@ class AdsListView(ListView):
     paginate_by = 6
 
     def get_queryset(self):
-        try:
-            self.category = Category.objects.get(slug=self.kwargs['category_slug'])
-            return Ads.objects.filter(category=self.category)
-        except Category.DoesNotExist:
-            raise Http404("Category not found.")
+        self.category = get_object_or_404(Category, slug=self.kwargs['category_slug'])
+        return Ads.objects.filter(category=self.category)
         
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -34,13 +31,5 @@ class AdDetailView(DetailView):
     template_name = 'ads/ad_detail.html'
     context_object_name = 'ad'
 
-    def get_object(self, queryset=None):
-        category_slug = self.kwargs['category_slug']
-        ad_slug = self.kwargs['ad_slug']
-        queryset = self.get_queryset().filter(slug=ad_slug, category__slug=category_slug)
-        obj = queryset.first()  
-
-        if obj is None:
-            raise Http404("Ad not found.")
-        
-        return obj
+    def get_object(self):
+        return get_object_or_404(Ads, slug=self.kwargs['ad_slug'], category__slug=self.kwargs['category_slug'])
