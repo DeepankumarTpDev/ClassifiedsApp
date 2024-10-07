@@ -21,25 +21,25 @@
                 </a>
                 <div class="flex items-center">
                     <a href="{% url 'ads:home' %}" class="text-gray-700 hover:text-blue-600 ml-6">Home</a>
-                    <a href="#" class="text-gray-700 hover:text-blue-600 ml-6">Post Ad</a>
-                    <a href="#" class="text-gray-700 hover:text-blue-600 ml-6">Login</a>
-                    <a href="#" class="text-gray-700 hover:text-blue-600 ml-6">Register</a>
                     {% if user.is_authenticated %}
                         <a href="#" class="text-gray-700 hover:text-blue-600 ml-4">Messages</a>
+                        <a href="{% url "ads:ad_create" %}" class="text-gray-700 hover:text-blue-600 ml-6">Post Ad</a>
+                        <a href="#" class="text-gray-700 hover:text-blue-600 ml-6">{{user.username}}</a>
+                    {% else %}
+                        <a href="#" class="text-gray-700 hover:text-blue-600 ml-6">Login</a>
+                        <a href="#" class="text-gray-700 hover:text-blue-600 ml-6">Register</a>
                     {% endif %}
                 </div>
             </div>
         </div>
     </nav>
 
-    
     <div class="container mx-auto px-6 py-8">
         {% block content %}
         
         {% endblock %}
     </div>
 
-    
     <footer class="bg-white border-t mt-12">
         <div class="container mx-auto px-6 py-4">
             <div class="flex justify-between items-center text-gray-600">

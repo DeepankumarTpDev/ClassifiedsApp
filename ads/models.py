@@ -39,14 +39,18 @@ class Ads(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def clean(self):
-        if self.price < 0:
-            raise ValidationError('Price cannot be negative.')
+        if self.price is not None and self.price < 0:
+            raise ValidationError('Price is Invalid.')
         
-        if self.event_start_date and self.event_end_date:
+        if self.event_start_date or self.event_end_date:
+            if self.event_start_date is None:
+                raise ValidationError("Enter start date.")
+            if self.event_end_date is None:
+                raise ValidationError("Enter end date.")
             if self.event_end_date < self.event_start_date:
                 raise ValidationError("The end date must be greater than the start date.")
             
-        if len(self.postal_code) < 5:
+        if self.postal_code !='' and len(self.postal_code) < 5:
             raise ValidationError("Postal code must be at least 5 characters long.")
         
         if len(self.postal_code) > 10:
