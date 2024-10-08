@@ -5,6 +5,7 @@ from .forms import AdsForm
 from django.contrib.auth.models import User
 from django.urls import reverse_lazy
 from django.http import HttpResponseForbidden
+from functools import wraps
 
 
 class HomeView(ListView):
@@ -52,6 +53,15 @@ class AdCreateView(CreateView):
         return super().form_valid(form)
 
 
+def user_is_ad_owner(view_func):
+    @wraps(view_func)
+    def _wrapped_view(self, *args, **kwargs):
+        ad = self.get_object()
+        if ad.user != self.request.user:
+            return HttpResponseForbidden()
+        return view_func(self, *args, **kwargs)
+    return _wrapped_view
+
 class AdEditView(UpdateView):
     model = Ads
     form_class = AdsForm
@@ -61,10 +71,8 @@ class AdEditView(UpdateView):
         queryset = super().get_queryset()
         return queryset.filter(created_by=self.request.user)
     
+    @user_is_ad_owner
     def dispatch(self, request, *args, **kwargs):
-        ad = self.get_object()
-        if ad.user != request.user:
-            return HttpResponseForbidden() 
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
@@ -88,8 +96,6 @@ class AdDeleteView(DeleteView):
     def get_object(self):
         return get_object_or_404(Ads, slug=self.kwargs['ad_slug'], category__slug=self.kwargs['category_slug'])
 
+    @user_is_ad_owner
     def dispatch(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        if request.user != self.object.user:  
-            return HttpResponseForbidden()  
         return super().dispatch(request, *args, **kwargs)

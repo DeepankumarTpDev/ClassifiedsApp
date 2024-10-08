@@ -1,6 +1,10 @@
 {% load widget_tweaks %}
 
-<form method="POST" novalidate enctype="multipart/form-data" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+{% block extra_head %}
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+{% endblock %}
+
+<form method="POST" novalidate enctype="multipart/form-data" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4" x-data="categoryHandler()">
     {% csrf_token %}
     
     {% if form.non_field_errors %}
@@ -42,7 +46,7 @@
         </div>
     {% endfor %}
     
-    <div id="event-fields" style="display: none;" class="mb-4">
+    <div id="event-fields" x-show="showEventFields" class="mb-4">
         <div class="mb-4">
             <label for="id_event_start_date" class="block text-gray-700 text-sm font-bold mb-2">Event Start Date</label>
             {% render_field form.event_start_date class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300" %}
@@ -58,33 +62,32 @@
     </button>
 </form>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-$(document).ready(function() {
+function categoryHandler() {
+    return {
+        showEventFields: false,
+        category: '',
 
-    function checkCategory() {
-        var selectedText = $('#id_category').find("option:selected").text();
-        
-        if (selectedText === 'Events' || selectedText === 'Classes') {
-            $('#event-fields').show();
-            console.log("The selected category is Events.");
-            $('#id_price-container .PricePerMonth').remove()
-        }
-        else if(selectedText === 'Jobs' || selectedText === 'Rentals'){
-            $('#id_price-container').append('<small class="PricePerMonth text-gray-500 bold text-sm">Enter Price per month</small>');
-        }
-         else {
-            $('#event-fields input').val('');
-            $('#event-fields select').val('');
-            $('#event-fields').hide();
-            $('#id_price-container .PricePerMonth').remove()
-            console.log("The selected category is not Events. It is: " + selectedText);
+        init() {
+            this.checkCategory();
+            document.getElementById('id_category').addEventListener('change', this.checkCategory.bind(this));
+        },
+
+        checkCategory() {
+            const selectedText = document.getElementById('id_category').selectedOptions[0].text;
+            
+            if (selectedText === 'Events' || selectedText === 'Classes') {
+                this.showEventFields = true;
+                document.querySelector('#id_price-container .PricePerMonth')?.remove();
+            } else if (selectedText === 'Jobs' || selectedText === 'Rentals') {
+                this.showEventFields = false;
+                document.getElementById('id_price-container').insertAdjacentHTML('beforeend', '<small class="PricePerMonth text-gray-500 bold text-sm">Enter Price per month</small>');
+            } else {
+                this.showEventFields = false;
+                document.querySelectorAll('#event-fields input, #event-fields select').forEach(field => field.value = '');
+                document.querySelector('#id_price-container .PricePerMonth')?.remove();
+            }
         }
     }
-
-    checkCategory();
-
-    // Check when the select value changes
-    $('#id_category').change(checkCategory);
-});
-</script>
+}
+</script> 
