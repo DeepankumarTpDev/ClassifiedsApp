@@ -7,6 +7,8 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.text import slugify
 from io import BytesIO
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
+import os
 
 class CategoryModelTest(TestCase):
     """
@@ -511,3 +513,422 @@ class AdDetailViewTests(TestCase):
         self.assertContains(response, 'Event Start:')
         self.assertContains(response, 'Event End:')
 
+
+class AdCreateViewTests(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name='Test Category', slug='test-category')
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
+        image_path = os.path.join('media', 'ads', 'events.jpg') 
+        with open(image_path, 'rb') as img_file:
+            self.image_file = SimpleUploadedFile(
+                name='your_image.jpg',
+                content=img_file.read(),
+                content_type='image/jpeg'  
+            )
+
+    def test_create_ad_valid(self):
+        self.client.login(username='testuser', password='password')
+        
+        response = self.client.post(reverse('ads:ad_create'), {
+            "title": "Valid Test Ad",
+            "category": self.category.id,
+            "description": "This ad has valid data.",
+            "price": 100,
+            "location": "Valid Location",
+            "tags": 'gas',
+            "image": self.image_file,
+            "postal_code": "12345",
+            "contact_info": "valid@example.com",
+        })
+        
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('ads:ads_by_category', args=[self.category.slug]))
+
+    def test_create_ad_invalid_missing_title(self):
+        response = self.client.post(reverse('ads:ad_create'), {
+            "category": self.category.id,
+            "description": "This ad has valid data.",
+            "price": 100,
+            "location": "Valid Location",
+            "tags": 'gas',
+            "image": self.image_file,
+            "postal_code": "12345",
+            "contact_info": "valid@example.com",
+        })
+        form = response.context['form']  
+        self.assertTrue(form.errors)  
+        self.assertIn('title', form.errors)  
+        self.assertEqual(form.errors['title'], ['This field is required.'])
+
+    def test_create_ad_invalid_missing_category(self):
+        response = self.client.post(reverse('ads:ad_create'), {
+            "title": "Valid Test Ad",
+            "description": "This ad has valid data.",
+            "price": 100,
+            "location": "Valid Location",
+            "tags": 'gas',
+            "image": self.image_file,
+            "postal_code": "12345",
+            "contact_info": "valid@example.com",
+        })
+
+        form = response.context['form']  
+        self.assertTrue(form.errors)  
+        self.assertIn('category', form.errors)  
+        self.assertEqual(form.errors['category'], ['This field is required.']) 
+
+    def test_create_ad_invalid_missing_description(self):
+        response = self.client.post(reverse('ads:ad_create'), {
+            "title": "Valid Test Ad",
+            "category": self.category.id,
+            "price": 100,
+            "location": "Valid Location",
+            "tags": 'gas',
+            "image": self.image_file,
+            "postal_code": "12345",
+            "contact_info": "valid@example.com",
+        })
+
+        form = response.context['form']  
+        self.assertTrue(form.errors)  
+        self.assertIn('description', form.errors)  
+        self.assertEqual(form.errors['description'], ['This field is required.'])
+        
+    def test_create_ad_invalid_missing_price(self):
+        response = self.client.post(reverse('ads:ad_create'), {
+            "title": "Valid Test Ad",
+            "category": self.category.id,
+            "description": "This ad has valid data.",
+            "location": "Valid Location",
+            "tags": 'gas',
+            "image": self.image_file,
+            "postal_code": "12345",
+            "contact_info": "valid@example.com",
+        })
+
+        form = response.context['form']  
+        self.assertTrue(form.errors)  
+        self.assertIn('price', form.errors)  
+        self.assertEqual(form.errors['price'], ['This field is required.'])
+
+    def test_create_ad_invalid_negative_price(self):
+        response = self.client.post(reverse('ads:ad_create'), {
+            "title": "Valid Test Ad",
+            "category": self.category.id,
+            "description": "This ad has valid data.",
+            "price": -50,
+            "location": "Valid Location",
+            "tags": 'gas',
+            "image": self.image_file,
+            "postal_code": "12345",
+            "contact_info": "valid@example.com",
+        })
+
+        form = response.context['form']
+        self.assertIn('Price is Invalid.', form.non_field_errors())
+
+    def test_create_ad_invalid_missing_location(self):
+        response = self.client.post(reverse('ads:ad_create'), {
+            "title": "Valid Test Ad",
+            "category": self.category.id,
+            "description": "This ad has valid data.",
+            "price": 100,
+            "tags": 'gas',
+            "image": self.image_file,
+            "postal_code": "12345",
+            "contact_info": "valid@example.com",
+        })
+
+        form = response.context['form']  
+        self.assertTrue(form.errors)  
+        self.assertIn('location', form.errors)  
+        self.assertEqual(form.errors['location'], ['This field is required.'])
+
+    def test_create_ad_invalid_postal_code_too_short(self):
+        response = self.client.post(reverse('ads:ad_create'), {
+            "title": "Valid Test Ad",
+            "category": self.category.id,
+            "description": "This ad has valid data.",
+            "price": 100,
+            "location": "Valid Location",
+            "tags": 'gas',
+            "image": self.image_file,
+            "postal_code": "123",
+            "contact_info": "valid@example.com",
+        })
+
+        form = response.context['form']
+        self.assertIn('Postal code must be at least 5 characters long.', form.non_field_errors())
+
+    def test_create_ad_invalid_missing_image(self):
+        response = self.client.post(reverse('ads:ad_create'), {
+            "title": "Valid Test Ad",
+            "category": self.category.id,
+            "description": "This ad has valid data.",
+            "price": 100,
+            "location": "Valid Location",
+            "tags": 'gas',
+            "postal_code": "12345",
+            "contact_info": "valid@example.com",
+        })
+
+        form = response.context['form']  
+        self.assertTrue(form.errors)  
+        self.assertIn('image', form.errors)  
+        self.assertEqual(form.errors['image'], ['This field is required.'])
+
+    def test_create_ad_template_used(self):
+        """Test that the correct template is used for the ad creation view."""
+        self.client.login(username='testuser', password='testpass')
+        response = self.client.get(reverse('ads:ad_create'))
+        self.assertTemplateUsed(response, 'ads/ad_create.html')
+
+    def test_create_ad_form_rendering(self):
+        """Test that the ad creation form renders correctly."""
+        self.client.login(username='testuser', password='testpass')
+        response = self.client.get(reverse('ads:ad_create'))
+        
+        self.assertIn('form', response.context)
+        
+        self.assertContains(response, 'name="title"')
+        self.assertContains(response, 'name="category"')
+        self.assertContains(response, 'name="description"')
+        self.assertContains(response, 'name="price"')
+        self.assertContains(response, 'name="location"')
+        self.assertContains(response, 'name="tags"')
+        self.assertContains(response, 'name="image"')
+        self.assertContains(response, 'name="postal_code"')
+        self.assertContains(response, 'name="contact_info"')
+
+    def test_create_ad_invalid_form_submission(self):
+        """Test that invalid form submission returns to the same template with errors."""
+        self.client.login(username='testuser', password='testpass')
+        
+        response = self.client.post(reverse('ads:ad_create'), {
+            "category": self.category.id,
+            "description": "This ad has valid data.",
+            "price": 100,
+            "location": "Valid Location",
+            "tags": 'gas',
+            "image": self.image_file,
+            "postal_code": "12345",
+            "contact_info": "valid@example.com",
+        })
+
+        self.assertEqual(response.status_code, 200)
+
+
+class AdEditViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.category = Category.objects.create(name='Test Category', slug='test-category')
+        self.client.login(username='testuser', password='testpass')
+        image_path = os.path.join('media', 'ads', 'events.jpg') 
+        with open(image_path, 'rb') as img_file:
+            self.image_file = SimpleUploadedFile(
+                name='your_image.jpg',
+                content=img_file.read(),
+                content_type='image/jpeg'  
+            )
+
+    def test_edit_ad_valid(self):
+        ad = Ads.objects.create(
+            title="Original Title", 
+            category=self.category,
+            description="Original description", 
+            price=100.00,
+            tags='test',
+            contact_info ='original@example.com',
+            postal_code= '638056',
+            image = self.image_file,
+            location="Original Location",
+            user=self.user  
+        )
+        response = self.client.post(reverse('ads:ad_edit', args=[ad.category.slug, ad.slug]), {
+            "title": "Updated Title",
+            "category": self.category.id,
+            "slug": ad.slug,
+            "description": "Updated description.",
+            "price": 150.00,
+            "location": "Updated Location",
+            "tags": 'gas',
+            "postal_code": "54321",
+            "contact_info": "updated@example.com",
+        })
+        
+        self.assertRedirects(response, reverse('ads:ad_detail', args=[ad.category.slug, ad.slug]))
+        ad.refresh_from_db()
+        self.assertEqual(ad.title, "Updated Title")
+        self.assertEqual(ad.description, "Updated description.")
+        self.assertEqual(ad.price, 150)
+
+    def test_edit_ad_non_owner(self):
+        other_user = User.objects.create_user(username="otheruser", password="pass")
+        ad = Ads.objects.create(
+            title="Original Title", 
+            category=self.category,
+            description="Original description", 
+            price=100.00, 
+            tags='test',
+            contact_info ='original@example.com',
+            postal_code= '638056',
+            image = self.image_file,
+            location="Original Location",
+            user=other_user  
+        )
+        self.client.login(username='testuser', password='testpass')
+        response = self.client.post(reverse('ads:ad_edit', args=[ad.category.slug, ad.slug]), {
+            "title": "Updated Title",
+            "category": self.category,
+            "slug": ad.slug,
+            "description": "Updated description.",
+            "price": 150.00,
+            "location": "Updated Location",
+            "tags": 'gas',
+            "postal_code": "54321",
+            "contact_info": "updated@example.com",
+        })
+        self.assertEqual(response.status_code, 403)
+
+    def test_edit_ad_not_found(self):
+        self.client.login(username='testuser', password='testpass')
+        response = self.client.get(reverse('ads:ad_edit', args=['non-existent-category', 'non-existent-ad']))
+        self.assertEqual(response.status_code, 404)
+
+    def test_edit_ad_redirect(self):
+        ad = Ads.objects.create(
+            title="Original Title", 
+            category=self.category,
+            description="Original description", 
+            price=100.00, 
+            tags='test',
+            contact_info ='original@example.com',
+            postal_code= '638056',
+            image = self.image_file,
+            location="Original Location",
+            user=self.user
+        )
+        response = self.client.post(reverse('ads:ad_edit', args=[ad.category.slug, ad.slug]), {
+            "title": "Updated Title",
+            "category": self.category.id,
+            "slug": ad.slug,
+            "description": "Updated description.",
+            "price": 150.00,
+            "location": "Updated Location",
+            "tags": 'gas',
+            "postal_code": "54321",
+            "contact_info": "updated@example.com",
+        })
+
+        self.assertRedirects(response, reverse('ads:ad_detail', args=[ad.category.slug, ad.slug]))
+
+
+class AdDeleteViewTests(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name='Test Category', slug='test-category')
+        self.user = User.objects.create_user(username='testuser', password='password')
+        self.ad = Ads.objects.create(
+            title="Original Title",
+            category=self.category,
+            description="Original description",
+            price=100.00,
+            tags='test',
+            contact_info='original@example.com',
+            postal_code='638056',
+            image='test_image.jpg',
+            location="Original Location",
+            user=self.user  
+        )
+
+    def test_delete_existing_ad(self):
+        self.client.login(username='testuser', password='password')
+        response = self.client.post(reverse('ads:ad_delete', args=[self.ad.category.slug, self.ad.slug]))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Ads.objects.filter(id=self.ad.id).exists())
+
+    def test_delete_non_existent_ad(self):
+        self.client.login(username='testuser', password='password')
+        response = self.client.post(reverse('ads:ad_delete', args=['hsdad', 'sda']))  # Non-existent ID
+        self.assertEqual(response.status_code, 404)
+
+    def test_user_lacks_permission(self):
+        other_user = User.objects.create_user(username='otheruser', password='password')
+        self.client.login(username='otheruser', password='password')
+        response = self.client.post(reverse('ads:ad_delete', args=[self.ad.category.slug, self.ad.slug]))
+        self.assertEqual(response.status_code, 403)
+
+    def test_check_redirect_after_deletion(self):
+        self.client.login(username='testuser', password='password')
+        response = self.client.post(reverse('ads:ad_delete', args=[self.ad.category.slug, self.ad.slug]))
+        self.assertRedirects(response, expected_url=reverse('ads:ads_by_category', args=[self.category.slug]))
+
+    def test_check_database_state_after_deletion(self):
+        self.client.login(username='testuser', password='password')
+        self.client.post(reverse('ads:ad_delete', args=[self.ad.category.slug, self.ad.slug]))
+        self.assertFalse(Ads.objects.filter(id=self.ad.id).exists())
+
+
+class baseTemplateTests(TestCase):
+
+    def setUp(self):
+        self.url = reverse('ads:home')  
+
+    def test_navbar_authenticated_user(self):
+        self.user = User.objects.create_user(username='testuser', password='password')
+        self.client.login(username='testuser', password='password')
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, 'Messages')
+        self.assertContains(response, 'Post Ad')
+        self.assertContains(response, 'testuser')
+
+    def test_navbar_unauthenticated_user(self):
+        response = self.client.get(self.url)
+
+        self.assertContains(response, 'Login')
+        self.assertContains(response, 'Register')
+        self.assertNotContains(response, 'testuser')
+
+
+class AdDetailTemplateTests(TestCase):
+
+    def setUp(self):
+        # Create a user and an ad
+        self.user = User.objects.create_user(username='testuser', password='password')
+        self.category = Category.objects.create(name='Test Category', slug='test-category')
+        self.other_user = User.objects.create_user(username='otheruser', password='password')
+        self.ad = Ads.objects.create(
+            title="Original Title", 
+            category=self.category,
+            description="Original description", 
+            price=100.00, 
+            tags='test',
+            contact_info ='original@example.com',
+            postal_code= '638056',
+            image = 'test.jpeg',
+            location="Original Location",
+            user=self.user
+        )
+        self.url = reverse('ads:ad_detail', args=[self.ad.category.slug, self.ad.slug])  # Update with your detail view URL
+
+    def test_edit_delete_links_for_owner(self):
+        self.client.login(username='testuser', password='password')
+        response = self.client.get(self.url)
+
+        self.assertContains(response, 'Edit')
+        self.assertContains(response, 'Delete')
+
+    def test_edit_delete_links_for_non_owner(self):
+        self.client.login(username='otheruser', password='password')
+        response = self.client.get(self.url)
+
+        self.assertNotContains(response, 'Edit')
+        self.assertNotContains(response, 'Delete')
+
+    def test_edit_delete_links_for_unauthenticated_user(self):
+        response = self.client.get(self.url)
+
+        self.assertNotContains(response, 'Edit')
+        self.assertNotContains(response, 'Delete')

@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'ads.apps.AdsConfig',
     'chat.apps.ChatConfig',
+    'widget_tweaks',
     'taggit',
 ]
 

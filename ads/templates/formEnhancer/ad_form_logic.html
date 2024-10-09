@@ -1,0 +1,38 @@
+{% load widget_tweaks %}
+
+{% if field.name == 'category' %}
+
+    <div x-model="selectedCategory" x-on:change="selectedCategory = $event.target.options[$event.target.selectedIndex].text"> 
+        <label for="{{ field.id_for_label }}" class="block text-gray-700 text-sm font-bold mb-2">
+            {{ field.label }}
+        </label>
+        {% render_field  field class="mt-1 block w-full p-3 border border-green-500 rounded-md focus:ring focus:ring-green-300" %}
+    </div>
+
+{% elif field.name == 'event_start_date' or field.name == 'event_end_date' %}
+
+    <div x-show="isEventsOrClasses" x-model="NotEventsOrClasses">
+        <label for="{{ field.id_for_label }}" class="block text-gray-700 text-sm font-bold mb-2">
+            {{ field.label }}
+        </label>
+        {% render_field  field class="mt-1 block w-full p-3 border border-green-500 rounded-md focus:ring focus:ring-green-300" x-ref="clearFields" %}
+    </div>
+
+{% elif field.name == 'price'%}
+
+    <label for="{{ field.id_for_label }}" class="block text-gray-700 text-sm font-bold mb-2">
+        {{ field.label }}
+    </label>
+    {% render_field  field class="mt-1 block w-full p-3 border border-green-500 rounded-md focus:ring focus:ring-green-300" %}
+    <small class="text-gray-500" x-show="isJobsOrRentals">
+        Please enter the price per month.
+    </small> 
+
+{% else %}
+
+    <label for="{{ field.id_for_label }}" class="block text-gray-700 text-sm font-bold mb-2">
+        {{ field.label }}
+    </label>
+    {% render_field  field class="mt-1 block w-full p-3 border border-green-500 rounded-md focus:ring focus:ring-green-300" %}
+
+{% endif %}
