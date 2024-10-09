@@ -4,6 +4,8 @@ from django.urls import reverse
 from taggit.managers import TaggableManager
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
+from django.conf import settings
+
 
 class Category(models.Model):
     name = models.CharField(max_length=255, unique=True, blank=False)  
@@ -35,6 +37,8 @@ class Ads(models.Model):
     show_contact_info = models.BooleanField(default=True)
     event_start_date = models.DateTimeField(null=True, blank=True)
     event_end_date = models.DateTimeField(null=True, blank=True)
+    users_like = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='ads_liked', blank=True)
+    total_likes = models.PositiveIntegerField(db_index=True, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
