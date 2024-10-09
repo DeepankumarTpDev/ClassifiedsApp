@@ -1,11 +1,13 @@
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
+from ads.models import Ads
 
 class Chat(models.Model):
     sender = models.ForeignKey(User, related_name='sent_messages', blank=False, null=False, on_delete=models.CASCADE)
     receiver = models.ForeignKey(User, related_name='received_messages', blank=False, null=False, on_delete=models.CASCADE)
     message = models.TextField()
+    ad = models.ForeignKey(Ads, on_delete=models.CASCADE, related_name='chats', null=False, blank=False)
     timestamp = models.DateTimeField(default=timezone.now)
     conversation_id = models.CharField(max_length=255, editable=False, null= False)
 
