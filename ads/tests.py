@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 from .models import Category, Ads
+from chat.models import Chat
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -469,10 +470,12 @@ class AdsListViewTests(TestCase):
 
 
 class AdDetailViewTests(TestCase):
+
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        self.user1 = User.objects.create_user(username='user1', password='password')
+        self.user2 = User.objects.create_user(username='user2', password='password')
         self.category = Category.objects.create(name='Test Category', slug='test-category')
-        self.ad = Ads.objects.create(user=self.user, title='Test Ad', slug='test-ad',tags='ex', category=self.category, price=100.0, image='test_image.jpg', event_start_date="2024-12-01T10:00:00Z", event_end_date="2024-12-02T10:00:00Z")
+        self.ad = Ads.objects.create(user=self.user2, title='Test Ad', slug='test-ad', tags='ex', category=self.category, price=100.0, image='test_image.jpg', event_start_date="2024-12-01T10:00:00Z", event_end_date="2024-12-02T10:00:00Z")
 
     def test_ad_detail_view_status_code(self):
         response = self.client.get(reverse('ads:ad_detail', args=[self.category.slug, self.ad.slug]))
@@ -496,22 +499,34 @@ class AdDetailViewTests(TestCase):
 
     def test_ad_detail_view_event_dates_display(self):
         category = Category.objects.create(name='Events', slug='events')
-        ad = Ads.objects.create(
-            user=self.user,
-            title='Test Ad',
-            slug='test-a',
-            tags='ex',
-            category=category,  
-            price=100.0,
-            image='test_image.jpg',
-            event_start_date="2024-12-01T10:00:00Z",
-            event_end_date="2024-12-02T10:00:00Z"
-        )
-
+        ad = Ads.objects.create(user=self.user1, title='Event Ad', slug='event-ad', category=category, price=100.0, image='event_image.jpg', event_start_date="2024-12-01T10:00:00Z", event_end_date="2024-12-02T10:00:00Z")
         response = self.client.get(reverse('ads:ad_detail', args=[category.slug, ad.slug]))
-        
         self.assertContains(response, 'Event Start:')
         self.assertContains(response, 'Event End:')
+
+    def test_initiate_new_conversation(self):
+        self.client.login(username='user1', password='password')
+        response = self.client.post(reverse('ads:ad_detail', args=[self.category.slug, self.ad.slug]))
+        self.assertEqual(Chat.objects.count(), 1)
+        chat_message = Chat.objects.first()
+        self.assertEqual(chat_message.sender, self.user1)
+        self.assertEqual(chat_message.receiver, self.user2)
+        self.assertEqual(chat_message.ad, self.ad)
+        self.assertRedirects(response, reverse('chat:conversation_detail', args=[self.ad.slug, chat_message.conversation_id]))
+
+    def test_redirect_to_existing_conversation(self):
+        self.client.login(username='user1', password='password')
+        Chat.objects.create(sender=self.user1, receiver=self.user2, ad=self.ad, message="Existing Message", conversation_id="1-user1-test-ad-2-user2")
+        response = self.client.post(reverse('ads:ad_detail', args=[self.category.slug, self.ad.slug]))
+        self.assertEqual(Chat.objects.count(), 1)
+        self.assertRedirects(response, reverse('chat:conversation_detail', args=[self.ad.slug, "1-user1-test-ad-2-user2"]))
+
+    def test_conversation_id_generation(self):
+        self.client.login(username='user1', password='password')
+        self.client.post(reverse('ads:ad_detail', args=[self.category.slug, self.ad.slug]))
+        chat_message = Chat.objects.first()
+        expected_conversation_id = f"{self.user1.id}-{self.user1.username}-{self.ad.slug}-{self.user2.id}-{self.user2.username}"
+        self.assertEqual(chat_message.conversation_id, expected_conversation_id)
 
 
 class AdCreateViewTests(TestCase):

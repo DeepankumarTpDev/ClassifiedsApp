@@ -8,11 +8,12 @@
     <title>{% block title %}Classifieds{% endblock %}</title>
 
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     {% block extra_head %}{% endblock %}
 </head>
 
 <body class="bg-gray-50">
-
+{% block body %}
     <nav class="bg-white shadow-lg mb-6">
         <div class="container mx-auto px-6 py-4">
             <div class="flex justify-between items-center">
@@ -22,7 +23,7 @@
                 <div class="flex items-center">
                     <a href="{% url 'ads:home' %}" class="text-gray-700 hover:text-blue-600 ml-6">Home</a>
                     {% if user.is_authenticated %}
-                        <a href="#" class="text-gray-700 hover:text-blue-600 ml-4">Messages</a>
+                        <a href="{% url "chat:conversation_list" %}" class="text-gray-700 hover:text-blue-600 ml-4">Messages</a>
                         <a href="{% url "ads:ad_create" %}" class="text-gray-700 hover:text-blue-600 ml-6">Post Ad</a>
                         <a href="#" class="text-gray-700 hover:text-blue-600 ml-6">{{user.username}}</a>
                     {% else %}
@@ -51,7 +52,7 @@
             </div>
         </div>
     </footer>
-
+{% endblock body %}
 </body>
 
 </html>

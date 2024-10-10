@@ -1,0 +1,35 @@
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('conversationDetailComponent', () => ({
+            editMessage: false,
+            messageContent: '',
+            messageToEdit: '',
+            actionUrl: '',
+            messageError: false,
+            editMessageError: false,
+            
+            validateForm() {
+                this.messageError = false;
+                this.editMessageError = false;
+                
+                if (!this.editMessage && !this.messageContent.trim()) {
+                    this.messageError = true;
+                }
+                
+                if (this.editMessage && !this.messageToEdit.trim()) {
+                    this.editMessageError = true;
+                }
+                
+                if (!this.messageError && !this.editMessageError) {
+                    this.$refs.messageForm.submit();
+                }
+            },
+            
+            handleclickEditCancel() {
+                this.editMessage = !this.editMessage;
+                this.actionUrl = '';
+                this.messageToEdit = '';
+            }
+        }));
+    });
+</script>

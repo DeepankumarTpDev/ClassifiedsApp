@@ -13,7 +13,11 @@ class Chat(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.conversation_id:
-            self.conversation_id = f'{self.sender.username}_{self.sender.id}_to_{self.receiver.username}_{self.receiver.id}'
+            if self.sender.id > self.receiver.id:
+                user1, user2 = self.receiver, self.sender
+            else:
+                user1, user2 = self.sender, self.receiver
+            self.conversation_id = f"{user1.id}-{user1.username}-{self.ad.slug}-{user2.id}-{user2.username}"
         
         super().save(*args, **kwargs)
 
