@@ -13,13 +13,19 @@ class Chat(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.conversation_id:
-            if self.sender.id > self.receiver.id:
-                user1, user2 = self.receiver, self.sender
-            else:
-                user1, user2 = self.sender, self.receiver
-            self.conversation_id = f"{user1.id}-{user1.username}-{self.ad.slug}-{user2.id}-{user2.username}"
+            self.conversation_id = self.generate_conversation_id()
         
         super().save(*args, **kwargs)
+
+    def generate_conversation_id(self):
+        """ create unique conversation_id using the sender and receiver details """
+        
+        if self.sender.id > self.receiver.id:
+            user1, user2 = self.receiver, self.sender
+        else:
+            user1, user2 = self.sender, self.receiver
+
+        return f"{user1.id}-{user1.username}-{self.ad.slug}-{user2.id}-{user2.username}"
 
     def __str__(self):
         return self.conversation_id
