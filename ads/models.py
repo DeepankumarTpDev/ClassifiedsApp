@@ -69,7 +69,7 @@ class Ads(models.Model):
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        pass
+        return reverse('ads:ad_detail', args=[self.category.slug, self.slug])
 
 
     class Meta:

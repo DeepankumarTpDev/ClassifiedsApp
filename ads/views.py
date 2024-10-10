@@ -1,12 +1,14 @@
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from .models import Ads, Category
+from chat.models import Chat
 from django.shortcuts import get_object_or_404,redirect,render
 from .forms import AdsForm
 from django.contrib.auth.models import User
 from django.urls import reverse_lazy
 from django.http import HttpResponseForbidden
 from functools import wraps
-
+from django.views import View
+from chat.utils import get_user_conversations
 
 class HomeView(ListView):
     model = Category
@@ -38,6 +40,30 @@ class AdDetailView(DetailView):
 
     def get_object(self):
         return get_object_or_404(Ads, slug=self.kwargs['ad_slug'], category__slug=self.kwargs['category_slug'])
+    
+    def post(self, request, *args, **kwargs):
+        self.ad = self.get_object()
+
+        if self.ad.user.id > self.request.user.id:
+            user1, user2 = self.request.user, self.ad.user
+        else:
+            user1, user2 = self.ad.user, self.request.user
+
+        conversation_id = f"{user1.id}-{user1.username}-{self.ad.slug}-{user2.id}-{user2.username}"
+
+        user_conversations = get_user_conversations(request.user)
+        conversation_ids = [conv['conversation_id'] for conv in user_conversations]
+
+        if conversation_id in conversation_ids:
+            return redirect('chat:conversation_detail', ad_slug=self.ad.slug, conversation_id=conversation_id)
+        else:
+            Chat.objects.create(
+                sender=request.user,
+                receiver=self.ad.user,
+                ad = self.ad,
+                message = f"Hi, I am {request.user.username}. I am interested in your ad posting."
+            )
+            return redirect('chat:conversation_detail', ad_slug=self.ad.slug, conversation_id=conversation_id)
     
 
 class AdCreateView(CreateView):
@@ -99,3 +125,4 @@ class AdDeleteView(DeleteView):
     @user_is_ad_owner
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
+
