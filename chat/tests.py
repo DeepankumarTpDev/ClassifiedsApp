@@ -1,99 +1,61 @@
-from django.test import TestCase
 from django.contrib.auth.models import User
-from .models import Chat
-from django.db import IntegrityError
-from django.core.exceptions import ObjectDoesNotExist
+from django.test import TestCase
+from ads.models import Ads, Category
+from .models import Chat, Message
 
-
-class ChatModelTest(TestCase):
+class ChatMessageModelTest(TestCase):
 
     def setUp(self):
-        self.sender = User.objects.create_user(username='sender', password='password123')
-        self.receiver = User.objects.create_user(username='receiver', password='password123')
-
-    def test_chat_creation_with_valid_data(self):
-        """Test creating a chat instance with valid data."""
-
-        chat = Chat.objects.create(
-            sender=self.sender,
-            receiver=self.receiver,
-            message='Hello, how are you?'
+        self.user1 = User.objects.create_user(username='user1', password='pass123')
+        self.user2 = User.objects.create_user(username='user2', password='pass123')
+        self.category = Category.objects.create(name='Test Category', slug='test-category')
+        self.ad = Ads.objects.create(
+            title="Original Title", 
+            category=self.category,
+            description="Original description", 
+            price=100.00,
+            tags='test',
+            contact_info ='original@example.com',
+            postal_code= '638056',
+            image = 'test.jpg',
+            location="Original Location",
+            user=self.user1  
         )
-        self.assertIsInstance(chat, Chat)
+        self.chat = Chat.objects.create(ad=self.ad)
+        self.chat.users.add(self.user1, self.user2)
 
-    def test_profile_creation_with_empty_sender_fields(self):
-        """Test creating a chat with empty sender fields."""
-        
-        with self.assertRaises(ObjectDoesNotExist):
-            Chat.objects.create(
-                        receiver=self.receiver,
-                        message='This is a test message.'
-                    )
-            
-    def test_profile_creation_with_empty_receiver_fields(self):
-        """Test creating a chat with empty reciever fields."""
-        
-        with self.assertRaises(ObjectDoesNotExist):
-            Chat.objects.create(
-                        sender=self.sender,
-                        message='This is a test message.'
-                    )       
-    
-    def test_chat_message_field(self):
-        """Ensure that message field can store text."""
+    def test_chat_creation(self):
+        self.assertEqual(self.chat.ad, self.ad)
+        self.assertEqual(self.chat.users.count(), 2)
+        self.assertIn(self.user1, self.chat.users.all())
+        self.assertIn(self.user2, self.chat.users.all())
 
-        chat = Chat.objects.create(
-            sender=self.sender,
-            receiver=self.receiver,
-            message='This is a test message.'
+    def test_chat_str(self):
+        expected_str = f"Chat for {self.ad} with users user1, user2"
+        self.assertEqual(str(self.chat), expected_str)
+
+    def test_chat_created_on(self):
+        self.assertIsNotNone(self.chat.created_on)
+
+    def test_message_creation(self):
+        message = Message.objects.create(
+            sender=self.user1,
+            receiver=self.user2,
+            message="Hello!",
+            chat=self.chat
         )
-        self.assertEqual(chat.message, 'This is a test message.')
+        self.assertEqual(message.sender, self.user1)
+        self.assertEqual(message.receiver, self.user2)
+        self.assertEqual(message.message, "Hello!")
+        self.assertEqual(message.chat, self.chat)
 
-    def test_timestamp_default_value(self):
-        """Verify that timestamp is set to now when created."""
+    def test_message_ordering(self):
+        message1 = Message.objects.create(sender=self.user1, receiver=self.user2, message="Hello!", chat=self.chat)
+        message2 = Message.objects.create(sender=self.user2, receiver=self.user1, message="Hi!", chat=self.chat)
+        messages = Message.objects.all()
+        self.assertEqual(list(messages), [message1, message2])
 
-        chat = Chat.objects.create(
-            sender=self.sender,
-            receiver=self.receiver,
-            message='Timestamp test.'
-        )
-        self.assertIsNotNone(chat.timestamp)
 
-    def test_conversation_id_generation(self):
-        """Ensure conversation_id is generated correctly."""
-
-        chat = Chat.objects.create(
-            sender=self.sender,
-            receiver=self.receiver,
-            message='Testing conversation ID.'
-        )
-        expected_conversation_id = f'{self.sender.username}_{self.sender.id}_to_{self.receiver.username}_{self.receiver.id}'
-        self.assertEqual(chat.conversation_id, expected_conversation_id)
-
-    def test_string_representation(self):
-        """Check string representation of the chat."""
-
-        chat = Chat.objects.create(
-            sender=self.sender,
-            receiver=self.receiver,
-            message='String representation test.'
-        )
-        expected_str = f'{self.sender.username}_{self.sender.id}_to_{self.receiver.username}_{self.receiver.id}'
-        self.assertEqual(str(chat), expected_str)
-
-    def test_ordering_by_timestamp(self):
-        """Verify messages are ordered by timestamp."""
-        chat1 = Chat.objects.create(sender=self.sender, receiver=self.receiver, message='First message.')
-        chat2 = Chat.objects.create(sender=self.sender, receiver=self.receiver, message='Second message.')
-        
-        chats = Chat.objects.all()
-        
-        self.assertEqual(list(chats), [chat1, chat2])  
-
-    def test_unique_conversation_id(self):
-        """Ensure conversation IDs are unique for each sender-receiver pair."""
-        chat1 = Chat.objects.create(sender=self.sender, receiver=self.receiver, message='First conversation.')
-        chat2 = Chat.objects.create(sender=self.receiver, receiver=self.sender, message='Reply to first conversation.')
-
-        self.assertNotEqual(chat1.conversation_id, chat2.conversation_id)  
-
+    def test_chat_without_users(self):
+        chat_without_users = Chat.objects.create(ad=self.ad)
+        self.assertEqual(chat_without_users.users.count(), 0)
