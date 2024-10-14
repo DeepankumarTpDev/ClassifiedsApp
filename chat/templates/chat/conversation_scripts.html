@@ -26,9 +26,11 @@
             },
             
             handleclickEditCancel() {
-                this.editMessage = !this.editMessage;
+                this.editMessage = false;
                 this.actionUrl = '';
                 this.messageToEdit = '';
+                this.messageError= false;
+                this.editMessageError = false;
             }
         }));
     });

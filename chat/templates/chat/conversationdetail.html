@@ -39,7 +39,7 @@
                         {% if message.sender == user %}
                         <div class="flex items-center space-x-2">
                             <!-- Edit Button -->
-                            <button @click="editMessage = !editMessage; messageToEdit = '{{ message.message|escapejs }}'; actionUrl='{% url 'chat:edit_message' message.ad.slug message.conversation_id message.id %}'"
+                            <button @click="editMessage = true; messageToEdit = '{{ message.message|escapejs }}'; actionUrl='{% url 'chat:edit_message' message.chat.id message.id %}'"
                                 class="text-gray-100 text-xs hover:underline focus:outline-none">
                                 Edit
                             </button>
@@ -47,7 +47,7 @@
                             <span class="text-gray-400">|</span>
                             
                             <!-- Delete Button -->
-                            <form method="POST" action="{% url 'chat:delete_message' message.ad.slug message.conversation_id message.id %}" class="inline">
+                            <form method="POST" action="{% url 'chat:delete_message'  message.chat.id message.id  %}" class="inline">
                                 {% csrf_token %}
                                 <button type="submit" class="text-red-100 text-xs hover:underline focus:outline-none">Delete</button>
                             </form>
@@ -83,12 +83,11 @@
             <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-300 shadow-md">
                 Send
             </button>
-
-            <!-- Cancel Edit Button -->
-            <button x-show="editMessage" @click="handleclickEditCancel" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-300 shadow-md">
-                Cancel
-            </button>
-        </div>
+        </div>  
     </form>
+    <!-- Cancel Edit Button -->
+    <button x-show="editMessage" @click="handleclickEditCancel" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-300 shadow-md">
+        Cancel
+    </button>
 </div>
 {% endblock %}

@@ -6,23 +6,41 @@
 <div class="container mx-auto px-6 py-8">
     <h2 class="text-3xl font-bold text-center mb-8">Your Conversations</h2>
 
-    {% if conversation_data %}
+    {% if conversations %}
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {% for conversation in conversation_data %}
-            <a href="{% url 'chat:conversation_detail' ad_slug=conversation.ad.slug conversation_id=conversation.conversation_id %}" >
-                <div class="bg-white shadow-lg rounded-lg p-4">
-                    <h5 class="text-xl font-semibold mb-2 text-blue-600">
-                        {{ conversation.opposite_user.username }}
-                    </h5>
-                    <h6 class="text-xl font-semibold mb-2 text-black-400">
-                        {{ conversation.ad.title|truncatewords:5 }}
-                    </h6>
-                    <p class="text-gray-600">
-                        <small>{{ conversation.last_message.message|truncatewords:5 }}</small><br>
-                        <small class="text-gray-400">{{ conversation.last_message.timestamp|date:"M d, H:i" }}</small>
-                    </p>
-                </div>
-            </a>
+            {% for conversation in conversations %}
+                {% with conversation.users.all as chat_users %}
+                    {% if chat_users %}
+                        {% for user in chat_users %}
+                            {% if user != request.user %}
+                                <a href="{% url 'chat:conversation_detail' chat_id=conversation.id %}">
+                                    <div class="bg-white shadow-lg rounded-lg p-4">
+                                        <h5 class="text-xl font-semibold mb-2 text-blue-600">
+                                            {{ user.username }}
+                                        </h5>
+                                        <h6 class="text-xl font-semibold mb-2 text-black-400">
+                                            {{ conversation.ad.title|truncatewords:5 }}
+                                        </h6>
+                                        <p class="text-gray-600">
+                                            <small>
+                                                {% if conversation.messages.all %}
+                                                    {{ conversation.messages.last.message|truncatewords:5 }}
+                                                {% else %}
+                                                    No messages yet.
+                                                {% endif %}
+                                            </small><br>
+                                            <small class="text-gray-400">
+                                                {% if conversation.messages.all %}
+                                                    {{ conversation.messages.last.created_on|date:"M d, H:i" }}
+                                                {% endif %}
+                                            </small>
+                                        </p>
+                                    </div>
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
             {% endfor %}
         </div>
     {% else %}
