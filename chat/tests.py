@@ -4,6 +4,7 @@ from ads.models import Category, Ads
 from .models import User, Chat, Message
 from django.urls import reverse
 
+
 class ChatMessageModelTest(TestCase):
 
     def setUp(self):
@@ -285,3 +286,4 @@ class ConversationDetailTemplateTests(TestCase):
         response = self.client.get(back_button_url)
         self.assertEqual(response.status_code, 200)  
         self.assertTemplateUsed(response, 'chat/conversationlist.html') 
+
