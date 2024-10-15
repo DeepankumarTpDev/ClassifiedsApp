@@ -1,8 +1,8 @@
-from django.shortcuts import render,get_list_or_404,get_object_or_404
-from django.views.generic import ListView
+from django.views.generic import ListView, DeleteView, UpdateView, CreateView
 from .models import Chat, Message
-from django.shortcuts import redirect
-from django.db.models import Count
+from django.shortcuts import get_object_or_404,render
+from django.urls import reverse_lazy
+from .forms import MessageEditForm
 
 class ConversationListView(ListView):
     model= Chat
@@ -10,23 +10,18 @@ class ConversationListView(ListView):
     context_object_name = 'conversations'
 
     def get_queryset(self):
-        return (
-            Chat.objects.filter(users=self.request.user)
-            .annotate(message_count=Count('messages'))  
-            .filter(message_count__gt=0)  
-        )
-    
+        return Chat.objects.filter(users=self.request.user)
+            
 
 class ConversationDetailView(ListView):
     model = Message
     template_name = 'chat/conversationdetail.html'
     context_object_name = 'messages'
 
-
     def get_queryset(self):
         chat_id = self.kwargs['chat_id']
         chat = get_object_or_404(Chat, id=chat_id, users=self.request.user)
-        return get_list_or_404(Message.objects.filter(chat=chat).order_by('created_on'))
+        return Message.objects.filter(chat=chat, users=self.request.user).order_by('created_on')
          
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -36,62 +31,117 @@ class ConversationDetailView(ListView):
         opposite_user = chat.users.exclude(id=self.request.user.id).first()
         context['opposite_user'] = opposite_user
         context['related_ad'] = chat.ad  
+        context['chat_id'] = chat_id
 
         return context
 
-    def post(self, request, *args, **kwargs):
+
+class ConversationMesageSendView(CreateView):
+    model = Message
+    fields = ['message']
+    template_name = 'chat/conversationdetail.html'
+
+    def form_valid(self, form):
         chat_id = self.kwargs['chat_id']
-        message_content = request.POST.get('message').strip()
+        chat = get_object_or_404(Chat, id=chat_id, users=self.request.user)
+        opposite_user = chat.users.exclude(id=self.request.user.id).first()
+        
+        form.instance.sender = self.request.user
+        form.instance.receiver = opposite_user
+        form.instance.chat = chat
+        
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        chat_id = self.kwargs['chat_id']
         chat = get_object_or_404(Chat, id=chat_id, users=self.request.user)
         opposite_user = chat.users.exclude(id=self.request.user.id).first()
 
-        if not message_content:
-            return redirect('chat:conversation_detail', chat_id=chat_id)
-            
-        Message.objects.create(
-                sender=request.user,
-                receiver= opposite_user,
-                message=message_content,
-                chat = chat
-            )
-            
-         
-        return redirect('chat:conversation_detail', chat_id=chat_id)
+        context = {
+            'object_list': Message.objects.filter(chat=chat).order_by('created_on'),
+            'message_send_form': form,
+            'opposite_user': opposite_user,
+            'related_ad': chat.ad,
+            'chat_id': chat_id,  
+        }
 
-    def edit_message(self, request, chat_id, message_id):
-        chat = get_object_or_404(Chat, id=chat_id, users=self.request.user)
-        message = get_object_or_404(Message, id=message_id, sender=request.user, chat=chat)
+        return render(self.request, self.template_name, context)
 
-        if request.method == "POST":
-            new_content = request.POST.get('editedmessage').strip()
+    def get_success_url(self):
+        return reverse_lazy('chat:conversation_detail', args=[self.kwargs['chat_id']])    
 
-        if not new_content:
-            return redirect('chat:conversation_detail', chat_id)
-        
-        message.message = new_content.strip()
-        message.save()
 
-        return redirect('chat:conversation_detail', chat_id)
+class ConversationMesageEditView(UpdateView):
+    model = Message
+    form_class = MessageEditForm
+    template_name = 'chat/conversationdetail.html'
 
-    def delete_message(self, request, chat_id, message_id):
-        chat = get_object_or_404(Chat, id=chat_id, users=self.request.user)
-        message = get_object_or_404(Message, id=message_id, sender=request.user, chat=chat)
+    def get_queryset(self):
+        chat = get_object_or_404(Chat, id=self.kwargs['chat_id'], users=self.request.user)
+        return Message.objects.filter(chat=chat, sender=self.request.user) 
 
-        if request.method == "POST":
-            message.delete()
-
-        ismessagesinCurrentConversation = Message.objects.filter(chat=chat)
-
-        if not ismessagesinCurrentConversation:
-            return redirect('chat:conversation_list')
-
-        return redirect('chat:conversation_detail', chat_id)
+    def get_object(self, queryset=None):
+        queryset = self.get_queryset()  
+        obj = get_object_or_404(queryset, id=self.kwargs['message_id'])  
+        return obj
     
-    def dispatch(self, request, *args, **kwargs):
-        if request.method == 'POST':
-            if 'edit' in request.path:
-                return self.edit_message(request, kwargs['chat_id'], kwargs['message_id'])
-            elif 'delete' in request.path:
-                print("delete")
-                return self.delete_message(request, kwargs['chat_id'], kwargs['message_id'])
-        return super().dispatch(request, *args, **kwargs)
+    def form_invalid(self, form):
+        chat_id = self.kwargs['chat_id']
+        chat = get_object_or_404(Chat, id=chat_id, users=self.request.user)
+        opposite_user = chat.users.exclude(id=self.request.user.id).first()
+
+        context = {
+            'object_list': Message.objects.filter(chat=chat).order_by('created_on'),
+            'message_edit_form': form,
+            'opposite_user': opposite_user,
+            'related_ad': chat.ad,
+            'editMessage': 'true',
+            'message_id': self.object.id,
+            'chat_id': chat_id,  
+        }
+
+        return render(self.request, self.template_name, context)
+
+    def get_success_url(self):
+        return reverse_lazy('chat:conversation_detail', args=[self.kwargs['chat_id']])
+    
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()  
+        form = self.get_form()  
+        chat_id = self.kwargs['chat_id']
+        chat = get_object_or_404(Chat, id=chat_id, users=self.request.user)
+        opposite_user = chat.users.exclude(id=self.request.user.id).first()
+
+        context = {
+            'object_list': Message.objects.filter(chat=chat).order_by('created_on'),
+            'message_edit_form': form,
+            'opposite_user': opposite_user,
+            'related_ad': chat.ad,
+            'editMessage': 'true',
+            'message_id': self.object.id,
+            'chat_id': chat_id,  
+        }
+
+        return render(self.request, self.template_name, context)
+
+
+class ConversationMesageDeleteView(DeleteView):
+    model = Message
+
+    def get_queryset(self):
+        chat = get_object_or_404(Chat, id=self.kwargs['chat_id'], users=self.request.user)
+        return Message.objects.filter(chat=chat, sender=self.request.user) 
+
+    def get_object(self, queryset=None):
+        chat = get_object_or_404(Chat, id=self.kwargs['chat_id'], users=self.request.user)
+        message = get_object_or_404(
+            Message,
+            chat=chat,
+            id=self.kwargs['message_id'],
+            sender=self.request.user
+        )
+        return message
+
+    def get_success_url(self):
+        return reverse_lazy('chat:conversation_detail', args=[self.kwargs['chat_id']])
+    

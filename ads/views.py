@@ -44,7 +44,7 @@ class AdDetailView(DetailView):
     def post(self, request, *args, **kwargs):
         self.ad = self.get_object()
         chat = Chat.objects.filter(ad=self.ad, users=request.user).filter(users=self.ad.user).first()
-
+        print('chat',chat)
         if chat:
             return redirect('chat:conversation_detail', chat_id=chat.id)
         else:   

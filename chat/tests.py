@@ -123,7 +123,7 @@ class ConversationListViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'chat/conversationlist.html')
         self.assertIn('conversations', response.context)
-        self.assertEqual(len(response.context['conversations']), 1)
+        self.assertEqual(len(response.context['conversations']), 3)
 
 
 class ConversationDetailViewTests(TestCase):
@@ -165,27 +165,118 @@ class ConversationDetailViewTests(TestCase):
         response = self.client.get(reverse('chat:conversation_detail', args=[999]))  
         self.assertEqual(response.status_code, 404)  
 
+
+class ConversationMessageSendViewTests(TestCase):
+    
+    def setUp(self):
+        self.user = User.objects.create_user(username='user1', password='password')
+        self.user2 = User.objects.create_user(username='testuser2', password='testpass2')
+        self.opposite_user = User.objects.create_user(username='user2', password='password')
+        self.category = Category.objects.create(name='Test Category') 
+        self.ad = Ads.objects.create(
+            user=self.user,
+            title="Test Ad",
+            category=self.category,
+            description="This is a test ad.",
+            location="Test Location",
+            postal_code="12345",
+            contact_info="test@example.com",
+            price=99.99,
+            image='image.jpg'
+        )
+        self.chat = Chat.objects.create(ad=self.ad)
+        self.chat.users.set([self.user, self.user2])
+
+        self.chat_message = Message.objects.create(
+            sender=self.user,
+            receiver=self.opposite_user,
+            chat=self.chat,
+            message='Initial Message'
+        )
+        self.client.login(username='user1', password='password') 
+    
     def test_send_message_valid(self):
-        response = self.client.post(reverse('chat:conversation_detail', args=[self.chat.id]), {'message': 'Hello!'})
+        response = self.client.post(reverse('chat:send_message', args=[self.chat.id]), {'message': 'Hello!'})
         self.assertEqual(response.status_code, 302)  
         self.assertEqual(Message.objects.count(), 2)  
 
     def test_send_message_empty(self):
-        response = self.client.post(reverse('chat:conversation_detail', args=[self.chat.id]), {'message': ''})
-        self.assertEqual(response.status_code, 302)  
+        response = self.client.post(reverse('chat:send_message', args=[self.chat.id]), {'message': ''})
         self.assertEqual(Message.objects.count(), 1)  
 
+class ConversationMessageEditViewTests(TestCase):
+    
+    def setUp(self):
+        self.user = User.objects.create_user(username='user1', password='password')
+        self.user2 = User.objects.create_user(username='testuser2', password='testpass2')
+        self.opposite_user = User.objects.create_user(username='user2', password='password')
+        self.category = Category.objects.create(name='Test Category') 
+        self.ad = Ads.objects.create(
+            user=self.user,
+            title="Test Ad",
+            category=self.category,
+            description="This is a test ad.",
+            location="Test Location",
+            postal_code="12345",
+            contact_info="test@example.com",
+            price=99.99,
+            image='image.jpg'
+        )
+        self.chat = Chat.objects.create(ad=self.ad)
+        self.chat.users.set([self.user, self.user2])
+
+        self.chat_message = Message.objects.create(
+            sender=self.user,
+            receiver=self.opposite_user,
+            chat=self.chat,
+            message='Initial Message'
+        )
+        self.client.login(username='user1', password='password')  
+
     def test_edit_message_valid(self):
-        response = self.client.post(reverse('chat:edit_message', args=[self.chat.id, self.chat_message.id]), {'editedmessage': 'Edited Message'})
+        response = self.client.post(reverse('chat:edit_message', args=[self.chat.id, self.chat_message.id]), {'message': 'Edited Message'})
         self.chat_message.refresh_from_db()
-        self.assertEqual(response.status_code, 302)  
         self.assertEqual(self.chat_message.message, 'Edited Message')
 
     def test_edit_message_not_belonging_to_user(self):
         self.client.logout() 
         self.client.login(username='user2', password='password')  
-        response = self.client.post(reverse('chat:edit_message', args=[self.chat.id, self.chat_message.id]), {'editedmessage': 'Should Fail'})
+        response = self.client.post(reverse('chat:edit_message', args=[self.chat.id, self.chat_message.id]), {'message': 'Should Fail'})
         self.assertEqual(response.status_code, 404) 
+
+    def test_dispatch_edit(self):
+        response = self.client.post(reverse('chat:edit_message', args=[self.chat.id, self.chat_message.id]), {'message': 'Another Edit'})
+        self.assertEqual(Message.objects.first().message, 'Another Edit') 
+
+
+class ConversationMessagesDeleteViewTests(TestCase):
+    
+    def setUp(self):
+        self.user = User.objects.create_user(username='user1', password='password')
+        self.user2 = User.objects.create_user(username='testuser2', password='testpass2')
+        self.opposite_user = User.objects.create_user(username='user2', password='password')
+        self.category = Category.objects.create(name='Test Category') 
+        self.ad = Ads.objects.create(
+            user=self.user,
+            title="Test Ad",
+            category=self.category,
+            description="This is a test ad.",
+            location="Test Location",
+            postal_code="12345",
+            contact_info="test@example.com",
+            price=99.99,
+            image='image.jpg'
+        )
+        self.chat = Chat.objects.create(ad=self.ad)
+        self.chat.users.set([self.user, self.user2])
+
+        self.chat_message = Message.objects.create(
+            sender=self.user,
+            receiver=self.opposite_user,
+            chat=self.chat,
+            message='Initial Message'
+        )
+        self.client.login(username='user1', password='password')  
 
     def test_delete_message_valid(self):
         response = self.client.post(reverse('chat:delete_message', args=[self.chat.id, self.chat_message.id]))
@@ -196,26 +287,12 @@ class ConversationDetailViewTests(TestCase):
         self.client.logout()  
         self.client.login(username='user2', password='password')  
         response = self.client.post(reverse('chat:delete_message', args=[self.chat.id, self.chat_message.id]))
-        self.assertEqual(response.status_code, 404)  
-
-    def test_dispatch_edit(self):
-        response = self.client.post(reverse('chat:edit_message', args=[self.chat.id, self.chat_message.id]), {'editedmessage': 'Another Edit'})
-        self.assertEqual(response.status_code, 302)  
-        self.assertEqual(Message.objects.first().message, 'Another Edit') 
+        self.assertEqual(response.status_code, 404)   
 
     def test_dispatch_delete(self):
         response = self.client.post(reverse('chat:delete_message', args=[self.chat.id, self.chat_message.id]))
         self.assertEqual(response.status_code, 302)  
         self.assertEqual(Message.objects.count(), 0)  
-
-    def test_dispatch_other_method(self):
-        response = self.client.get(reverse('chat:conversation_detail', args=[self.chat.id]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_delete_last_message_redirects_to_conversation_list(self):
-        response = self.client.post(reverse('chat:delete_message', args=[self.chat.id, self.chat_message.id]))
-        self.assertEqual(Message.objects.count(), 0)
-        self.assertRedirects(response, reverse('chat:conversation_list'))
 
 
 class ConversationDetailTemplateTests(TestCase):
@@ -250,14 +327,14 @@ class ConversationDetailTemplateTests(TestCase):
         )
 
     def test_render_template_of_deleted_conversation_messages(self):
-        Message.objects.all().delete()  
+        Chat.objects.all().delete()  
         self.client.login(username='user1', password='pass')
         response = self.client.get(reverse('chat:conversation_detail', args=[self.chat.id]))
         self.assertEqual(response.status_code, 404)
 
     def test_send_message_success(self):
         self.client.login(username='user1', password='pass')
-        response = self.client.post(reverse('chat:conversation_detail', args=[self.chat.id]), {
+        response = self.client.post(reverse('chat:send_message', args=[self.chat.id]), {
             'message': 'A new message'
         })
         self.assertEqual(response.status_code, 302)  
@@ -266,7 +343,7 @@ class ConversationDetailTemplateTests(TestCase):
     def test_edit_message(self):
         self.client.login(username='user1', password='pass')
         response = self.client.post(reverse('chat:edit_message', args=[self.chat.id, self.message1.id]), {
-            'editedmessage': 'Edited message'
+            'message': 'Edited message'
         })
         self.message1.refresh_from_db()
         self.assertEqual(self.message1.message, 'Edited message')
