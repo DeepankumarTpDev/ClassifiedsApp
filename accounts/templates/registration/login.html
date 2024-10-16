@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Log-in{% endblock %}
+{% block content %}
+    <div class="max-w-lg mx-auto mt-10">
+        <h1 class="text-2xl font-bold mb-4">Log-in</h1>
+        {% if form.errors %}
+        <p class="bg-red-100 text-red-500 p-4 rounded mb-4">
+            Your username and password didn't match. Please try again.
+        </p>
+        {% else %}
+        <p class="mb-4">Please, use the following form to log-in. If you don't have an account 
+            <a href="{% url 'register' %}" class="text-blue-500 underline">register here</a>.
+        </p>
+        {% endif %}
+        <div class="login-form">
+            <form action="{% url 'login' %}" method="post" class="bg-white p-6 rounded shadow-md">
+                {% include "formenhancer/form.html" %}
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next }}" />
+                <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Log-in</button>
+            </form>
+            <p class="mt-4"><a href="{% url 'password_reset' %}" class="text-blue-500 underline">Forgot your password?</a></p>
+        </div>
+    </div>
+{% endblock %}

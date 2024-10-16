@@ -2,9 +2,11 @@ from django.views.generic import ListView, DeleteView, UpdateView, CreateView
 from .models import Chat, Message
 from django.shortcuts import get_object_or_404,render
 from django.urls import reverse_lazy
+from django.contrib.auth.mixins import LoginRequiredMixin
 from .forms import MessageEditForm
+from django.db.models import Q
 
-class ConversationListView(ListView):
+class ConversationListView(LoginRequiredMixin, ListView):
     model= Chat
     template_name = 'chat/conversationlist.html'
     context_object_name = 'conversations'
@@ -13,7 +15,7 @@ class ConversationListView(ListView):
         return Chat.objects.filter(users=self.request.user)
             
 
-class ConversationDetailView(ListView):
+class ConversationDetailView(LoginRequiredMixin, ListView):
     model = Message
     template_name = 'chat/conversationdetail.html'
     context_object_name = 'messages'
@@ -21,7 +23,10 @@ class ConversationDetailView(ListView):
     def get_queryset(self):
         chat_id = self.kwargs['chat_id']
         chat = get_object_or_404(Chat, id=chat_id, users=self.request.user)
-        return Message.objects.filter(chat=chat, users=self.request.user).order_by('created_on')
+
+        return Message.objects.filter(
+                Q(chat=chat) & (Q(sender=self.request.user) | Q(receiver=self.request.user))
+            ).order_by('created_on')
          
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -36,7 +41,7 @@ class ConversationDetailView(ListView):
         return context
 
 
-class ConversationMesageSendView(CreateView):
+class ConversationMesageSendView(LoginRequiredMixin, CreateView):
     model = Message
     fields = ['message']
     template_name = 'chat/conversationdetail.html'
@@ -71,7 +76,7 @@ class ConversationMesageSendView(CreateView):
         return reverse_lazy('chat:conversation_detail', args=[self.kwargs['chat_id']])    
 
 
-class ConversationMesageEditView(UpdateView):
+class ConversationMesageEditView(LoginRequiredMixin, UpdateView):
     model = Message
     form_class = MessageEditForm
     template_name = 'chat/conversationdetail.html'
@@ -125,7 +130,7 @@ class ConversationMesageEditView(UpdateView):
         return render(self.request, self.template_name, context)
 
 
-class ConversationMesageDeleteView(DeleteView):
+class ConversationMesageDeleteView(LoginRequiredMixin, DeleteView):
     model = Message
 
     def get_queryset(self):

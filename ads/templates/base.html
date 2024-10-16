@@ -25,10 +25,37 @@
                     {% if user.is_authenticated %}
                         <a href="{% url "chat:conversation_list" %}" class="text-gray-700 hover:text-blue-600 ml-4">Messages</a>
                         <a href="{% url "ads:ad_create" %}" class="text-gray-700 hover:text-blue-600 ml-6">Post Ad</a>
-                        <a href="#" class="text-gray-700 hover:text-blue-600 ml-6">{{user.username}}</a>
+                        <div x-data="{ open: false }" class="relative inline-block text-left">
+                            <!-- Username clickable element -->
+                            <a href="#" @click.prevent="open = !open" class="text-gray-700 hover:text-blue-600 ml-6">
+                                {{ user.username }}
+                            </a>
+            
+                            <!-- Dropdown menu -->
+                            <div x-show="open" @click.away="open = false" class="absolute mt-2 w-48 bg-white shadow-lg rounded-lg z-10">
+                                <div class="py-1">
+                                    <!-- Password change link -->
+                                    <a href="{% url 'password_change' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-200">
+                                        Change Password
+                                    </a>
+                                    <!-- Password reset link -->
+                                    <a href="{% url 'password_reset' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-200">
+                                        Reset Password
+                                    </a>
+                                    <!-- Logout button -->
+                                    <form action="{% url 'logout' %}" method="post">
+                                        {% csrf_token %}
+                                        <button type="submit" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-200">
+                                            Logout
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                                        
                     {% else %}
-                        <a href="#" class="text-gray-700 hover:text-blue-600 ml-6">Login</a>
-                        <a href="#" class="text-gray-700 hover:text-blue-600 ml-6">Register</a>
+                        <a href="{% url "login" %}" class="text-gray-700 hover:text-blue-600 ml-6">Login</a>
+                        <a href="{% url "register" %}" class="text-gray-700 hover:text-blue-600 ml-6">Register</a>
                     {% endif %}
                 </div>
             </div>
