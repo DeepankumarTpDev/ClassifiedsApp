@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 from .models import Category, Ads
+from chat.models import Chat, Message
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -469,10 +470,12 @@ class AdsListViewTests(TestCase):
 
 
 class AdDetailViewTests(TestCase):
+
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        self.user1 = User.objects.create_user(username='user1', password='password')
+        self.user2 = User.objects.create_user(username='user2', password='password')
         self.category = Category.objects.create(name='Test Category', slug='test-category')
-        self.ad = Ads.objects.create(user=self.user, title='Test Ad', slug='test-ad',tags='ex', category=self.category, price=100.0, image='test_image.jpg', event_start_date="2024-12-01T10:00:00Z", event_end_date="2024-12-02T10:00:00Z")
+        self.ad = Ads.objects.create(user=self.user2, title='Test Ad', slug='test-ad', tags='ex', category=self.category, price=100.00, image='test_image.jpg', event_start_date="2024-12-01T10:00:00Z", event_end_date="2024-12-02T10:00:00Z")
 
     def test_ad_detail_view_status_code(self):
         response = self.client.get(reverse('ads:ad_detail', args=[self.category.slug, self.ad.slug]))
@@ -496,22 +499,29 @@ class AdDetailViewTests(TestCase):
 
     def test_ad_detail_view_event_dates_display(self):
         category = Category.objects.create(name='Events', slug='events')
-        ad = Ads.objects.create(
-            user=self.user,
-            title='Test Ad',
-            slug='test-a',
-            tags='ex',
-            category=category,  
-            price=100.0,
-            image='test_image.jpg',
-            event_start_date="2024-12-01T10:00:00Z",
-            event_end_date="2024-12-02T10:00:00Z"
-        )
-
+        ad = Ads.objects.create(user=self.user1, title='Event Ad', slug='event-ad', category=category, price=100.0, image='event_image.jpg', event_start_date="2024-12-01T10:00:00Z", event_end_date="2024-12-02T10:00:00Z")
         response = self.client.get(reverse('ads:ad_detail', args=[category.slug, ad.slug]))
-        
         self.assertContains(response, 'Event Start:')
         self.assertContains(response, 'Event End:')
+
+    def test_initiate_new_conversation(self):
+        self.client.login(username='user1', password='password')
+        response = self.client.post(reverse('ads:ad_detail', args=[self.category.slug, self.ad.slug]))
+
+        self.assertEqual(Message.objects.count(), 1)
+        chat_message = Message.objects.first()
+        self.assertEqual(chat_message.sender, self.user1)
+        self.assertEqual(chat_message.receiver, self.user2)
+        self.assertEqual(response.status_code, 302)
+
+    def test_redirect_to_existing_conversation(self):
+        self.client.login(username='user1', password='password')
+        chat1=Chat.objects.create(ad=self.ad)
+        chat1.users.set([self.user1, self.user2])
+        Message.objects.create(sender=self.user1, receiver=self.user2, chat=chat1, message="Existing Message",)
+        response = self.client.post(reverse('ads:ad_detail', args=[self.category.slug, self.ad.slug]))
+        self.assertEqual(Message.objects.count(), 1)
+        self.assertEqual(response.status_code, 302)
 
 
 class AdCreateViewTests(TestCase):
@@ -911,7 +921,7 @@ class AdDetailTemplateTests(TestCase):
             location="Original Location",
             user=self.user
         )
-        self.url = reverse('ads:ad_detail', args=[self.ad.category.slug, self.ad.slug])  # Update with your detail view URL
+        self.url = reverse('ads:ad_detail', args=[self.ad.category.slug, self.ad.slug]) 
 
     def test_edit_delete_links_for_owner(self):
         self.client.login(username='testuser', password='password')
