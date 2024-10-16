@@ -4,6 +4,9 @@ from .forms import UserRegistrationForm, ProfileForm
 
 
 def register(request):
+    if request.user.is_authenticated:
+            return redirect('ads:home') 
+    
     if request.method == 'POST':
         user_form = UserRegistrationForm(request.POST)
         profile_form = ProfileForm(request.POST, request.FILES)
