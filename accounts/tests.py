@@ -92,12 +92,6 @@ class ProfileModelTest(TestCase):
         self.assertNotEqual(original_updated_at, profile.updated_at)
 
 
-from django.test import TestCase
-from django.urls import reverse
-from django.contrib.auth.models import User
-from .forms import UserRegistrationForm, ProfileForm
-from .models import Profile
-
 class UserRegistrationTests(TestCase):
 
     def test_successful_registration(self):
