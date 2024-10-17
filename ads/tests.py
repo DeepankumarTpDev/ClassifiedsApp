@@ -671,6 +671,42 @@ class AdCreateViewTests(TestCase):
         form = response.context['form']
         self.assertIn('Postal code must be at least 5 characters long.', form.non_field_errors())
 
+    def test_create_ad_invalid_contact_info_email(self):
+        response = self.client.post(reverse('ads:ad_create'), {
+            "title": "Valid Test Ad",
+            "category": self.category.id,
+            "description": "This ad has valid data.",
+            "price": 100,
+            "location": "Valid Location",
+            "tags": 'gas',
+            "image": self.image_file,
+            "postal_code": "12345",
+            "contact_info": "invalid-email",
+        })
+
+        form = response.context['form']
+        self.assertFalse(form.is_valid())
+        self.assertIn('contact_info', form.errors)
+        self.assertEqual(form.errors['contact_info'], ['Contact info must be a valid email address or a 10-digit mobile number.'])
+
+    def test_create_ad_invalid_contact_info_mobile(self):
+        response = self.client.post(reverse('ads:ad_create'), {
+            "title": "Valid Test Ad",
+            "category": self.category.id,
+            "description": "This ad has valid data.",
+            "price": 100,
+            "location": "Valid Location",
+            "tags": 'gas',
+            "image": self.image_file,
+            "postal_code": "12345",
+            "contact_info": '12345',
+        })
+
+        form = response.context['form']
+        self.assertFalse(form.is_valid())
+        self.assertIn('contact_info', form.errors)
+        self.assertEqual(form.errors['contact_info'], ['Contact info must be a valid email address or a 10-digit mobile number.'])
+
     def test_create_ad_invalid_missing_image(self):
         response = self.client.post(reverse('ads:ad_create'), {
             "title": "Valid Test Ad",
