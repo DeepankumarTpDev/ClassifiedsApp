@@ -159,3 +159,15 @@ class AdLikeView(LoginRequiredMixin, View):
             'liked': liked,
             'total_likes': ad.total_likes,
         })
+
+
+class AdToggleContactInfo(LoginRequiredMixin, View):
+    def post(self, request, category_slug, ad_slug, *args, **kwargs):
+        ad = get_object_or_404(Ads, category__slug=category_slug, slug=ad_slug)
+
+        show_contact_info = request.POST.get('show_contact_info') == 'True'
+        ad.show_contact_info = not show_contact_info  
+        ad.save()
+
+        return redirect('ads:ad_detail', category_slug=ad.category.slug, ad_slug=ad.slug)
+    

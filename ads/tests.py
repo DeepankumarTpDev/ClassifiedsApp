@@ -1071,3 +1071,63 @@ class AdLikeViewTests(TestCase):
         invalid_like_url = reverse('ads:ad_like', kwargs={'category_slug': 'gigs', 'ad_slug': 'invalid-slug'})
         response = self.client.post(invalid_like_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 404)
+
+
+class AdToggleContactInfoTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        self.client.login(username='testuser', password='testpassword')
+        self.category = Category.objects.create(name='Test Category', slug='test-category')
+        self.ad = Ads.objects.create(
+            title="ContactInfo Title", 
+            category=self.category,
+            description="Original description", 
+            price=100.00, 
+            tags='test',
+            contact_info='original@example.com',
+            postal_code='638056',
+            image='test.jpeg',
+            location="Original Location",
+            user=self.user
+        )
+
+    def test_toggle_contact_info_hide(self):
+        self.ad.save()
+
+        self.assertTrue(self.ad.show_contact_info)
+
+        response = self.client.post(reverse('ads:toggle_contact_info', kwargs={
+            'category_slug': self.ad.category.slug,
+            'ad_slug': self.ad.slug
+        }), {
+            'ad_id': self.ad.id,
+            'show_contact_info': 'True'
+        })
+
+        self.ad.refresh_from_db()
+
+        self.assertFalse(self.ad.show_contact_info)
+        self.assertRedirects(response, reverse('ads:ad_detail', kwargs={
+            'category_slug': self.ad.category.slug,
+            'ad_slug': self.ad.slug
+        }))
+
+
+    def test_toggle_contact_info_show(self):
+        self.ad.show_contact_info=False
+        self.assertFalse(self.ad.show_contact_info)
+        response = self.client.post(reverse('ads:toggle_contact_info', kwargs={
+            'category_slug': self.ad.category.slug,
+            'ad_slug': self.ad.slug
+        }), {
+            'ad_id': self.ad.id,
+            'show_contact_info': 'False'  
+        })
+
+        self.ad.refresh_from_db()
+
+        self.assertTrue(self.ad.show_contact_info)
+        self.assertRedirects(response, reverse('ads:ad_detail', kwargs={
+            'category_slug': self.ad.category.slug,
+            'ad_slug': self.ad.slug
+        }))

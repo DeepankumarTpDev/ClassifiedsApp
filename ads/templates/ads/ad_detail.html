@@ -11,76 +11,98 @@
 
     <div class="mt-6">
         <img src="{{ ad.image.url }}" alt="{{ ad.title }}" class="w-full h-auto max-h-[500px] object-contain rounded-lg shadow-md">
-    </div>    
+    </div>
 
-    <p class="mt-6 text-gray-600">{{ ad.description }}</p>
+    <div class="relative bg-gray-100 p-6 rounded-lg mt-4 shadow-md">
+        <div class="absolute top-2 right-2">
+            {% if user.is_authenticated %}
+                <div x-data="likeComponent({{ user_has_liked|lower }}, {{ ad.total_likes }}, '{{ csrf_token }}')" class="flex flex-col items-center justify-end text-right">
+                    <a @click="likeAd('{{ ad.category.slug }}', '{{ ad.slug }}')" class="inline-flex items-center justify-end p-2 rounded-full hover:bg-gray-200 transition duration-200">
+                        <template x-if="liked">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="currentColor" viewBox="0 0 24 24" stroke="none">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                            </svg>
+                        </template>
+                        <template x-if="!liked">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                            </svg>
+                        </template>
+                    </a>
+                    <p class="text-sm text-gray-600">
+                        <span x-text="totalLikes"></span>
+                    </p>
+                </div>
+            {% endif %}
+            {% if ad.user == user %}
+                <div class="flex space-x-2">
+                    <a href="{% url 'ads:ad_edit' category_slug=ad.category.slug ad_slug=ad.slug %}" class="p-2" onmouseover="this.setAttribute('title', 'Edit Ad')" onmouseout="this.removeAttribute('title')">
+                        <i class="fas fa-edit text-gray-600"></i>
+                    </a>
+                    <a href="{% url 'ads:ad_delete' category_slug=ad.category.slug ad_slug=ad.slug %}" class="p-2" onmouseover="this.setAttribute('title', 'Delete Ad')" onmouseout="this.removeAttribute('title') onclick="return confirm('Are you sure you want to delete this Ad?');"">
+                        <i class="fas fa-trash-alt text-gray-600"></i>
+                    </a>
+                    <form action="{% url 'ads:toggle_contact_info' category_slug=ad.category.slug ad_slug=ad.slug %}" method="POST" id="toggle-contact-form" class="flex items-center p-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="ad_id" value="{{ ad.id }}">
+                        <input type="hidden" name="show_contact_info" value="{{ ad.show_contact_info|yesno:'True,False' }}">
 
-    <p class="mt-2 text-gray-600"><strong>Location:</strong> {{ ad.location }}</p>
-
-    {% if ad.category.name == 'Rentals' or ad.category.name == 'Jobs' %}
-        <p class="mt-2 text-gray-600"><strong>Monthly Rate:</strong> ₹{{ ad.price }} / month</p>
-    {% else %}
-        <p class="mt-2 text-gray-600"><strong>Price:</strong> ₹{{ ad.price }}</p>
-    {% endif %}
-    
-
-    <p class="mt-2 text-gray-600"><strong>Posted on:</strong> {{ ad.created_at|date:"F j, Y" }}</p>
-
-    <p class="mt-2 text-gray-600"><strong>Posted by:</strong> {{ ad.user.username }}</p>
-
-    {% if ad.show_contact_info %}
-    <p class="mt-4 text-gray-600"><strong>Contact Info:</strong> {{ ad.contact_info }}</p>
-    {% endif %}
-
-    {% if ad.category.name == 'Events' or ad.category.name == 'Classes' %}
-        <p class="mt-2 text-gray-600"><strong>Event Start:</strong> {{ ad.event_start_date }}</p>
-        <p class="mt-2 text-gray-600"><strong>Event End:</strong> {{ ad.event_end_date }}</p>
-    {% endif %}
-
-    {% if user.is_authenticated %}
-        <div x-data="likeComponent({{ user_has_liked|lower }}, {{ ad.total_likes }}, '{{ csrf_token }}')" class="flex flex-col items-center justify-end text-right">
-        
-            <a @click="likeAd('{{ ad.category.slug }}', '{{ ad.slug }}')" class="inline-flex items-center justify-end mt-2 p-2 rounded-full hover:bg-gray-200 transition duration-200">
-                
-                <template x-if="liked">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="currentColor" viewBox="0 0 24 24" stroke="none">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
-                </template>
-                <template x-if="!liked">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                    </svg>
-                </template>
-
-            </a>
-            
-            <p class="text-sm text-gray-600">
-                <span x-text="totalLikes"></span>
-            </p>
+                        <span class="cursor-pointer" onclick="document.getElementById('toggle-contact-form').submit()">
+                            {% if ad.show_contact_info %}
+                                <i class="fas fa-user-slash text-red-500" title="Hide Contact Info"></i> <!-- Icon for hiding contact info -->
+                            {% else %}
+                                <i class="fas fa-user text-gray-600" title="Show Contact Info"></i> <!-- Icon for showing contact info -->
+                            {% endif %}
+                        </span>
+                    </form>
+                </div>
+            {% endif %}
         </div>
 
-        {% if ad.user == user %}
-            <div class="mt-6 flex justify-around">
-                <a href="{% url 'ads:ad_edit' category_slug=ad.category.slug ad_slug=ad.slug %}" class="p-3 rounded-lg bg-red-500 text-white hover:bg-red-600 transition duration-200">
-                    <i class="fas fa-edit"></i> Edit
-                </a>
+        <h2 class="text-lg font-bold text-gray-800 mt-4">Description:</h2>
+        <p class="mt-2 text-gray-600">{{ ad.description }}</p>
 
-                <a href="{% url 'ads:ad_delete' category_slug=ad.category.slug ad_slug=ad.slug %}" class="p-3 rounded-lg bg-red-500 text-white hover:bg-red-600 transition duration-200">
-                    <i class="fas fa-trash-alt"></i> Delete
-                </a>
+        <hr class="my-4">
+
+        <h2 class="text-lg font-bold text-gray-800">Details:</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+            <div>
+                <p class="mt-2 text-gray-600"><strong>Location:</strong> {{ ad.location }}</p>
+                {% if ad.category.name == 'Rentals' or ad.category.name == 'Jobs' %}
+                    <p class="mt-2 text-gray-600"><strong>Monthly Rate:</strong> ₹{{ ad.price }} / month</p>
+                {% else %}
+                    <p class="mt-2 text-gray-600"><strong>Price:</strong> ₹{{ ad.price }}</p>
+                {% endif %}
+                <p class="mt-2 text-gray-600"><strong>Posted on:</strong> {{ ad.created_at|date:"F j, Y" }}</p>
             </div>
-        {% else %}
-            <form method="POST">
-                {% csrf_token %}
-                <div class="flex mt-6">
-                    <button type="submit" class="p-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition duration-300 shadow-md">
-                        <i class="fas fa-envelope"></i> Send Message
-                    </button>
-                </div>
-            </form>
-        {% endif %}
-    {% endif %}
+            <div>
+                <p class="mt-2 text-gray-600"><strong>Posted by:</strong> {{ ad.user.username }}</p>
+                {% if ad.category.name == 'Events' or ad.category.name == 'Classes' %}
+                    <p class="mt-2 text-gray-600"><strong>Event Start:</strong> {{ ad.event_start_date }}</p>
+                    <p class="mt-2 text-gray-600"><strong>Event End:</strong> {{ ad.event_end_date }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% if ad.show_contact_info %}
+            <hr class="my-4">
 
+            <h2 class="text-lg font-bold text-gray-800">Contact Info:</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                <p class="mt-4 text-gray-600"><strong>Contact Info:</strong> {{ ad.contact_info }}</p>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if user.is_authenticated and ad.user != user %}
+        <form method="POST" class="mt-6">
+            {% csrf_token %}
+            <div class="flex">
+                <button type="submit" class="p-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition duration-300 shadow-md">
+                    <i class="fas fa-envelope"></i> Send Message
+                </button>
+            </div>
+        </form>
+    {% endif %}
+    
 </div>
 {% endblock %}

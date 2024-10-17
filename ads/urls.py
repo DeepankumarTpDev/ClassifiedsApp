@@ -11,6 +11,7 @@ urlpatterns = [
     path('category/<slug:category_slug>/ads/<slug:ad_slug>/edit/', views.AdEditView.as_view( ), name='ad_edit'),
     path('category/<slug:category_slug>/ads/<slug:ad_slug>/delete/', views.AdDeleteView.as_view( ), name='ad_delete'),
     path('category/<slug:category_slug>/ads/<slug:ad_slug>/like/', views.AdLikeView.as_view() , name='ad_like'),
+    path('category/<slug:category_slug>/ads/<slug:ad_slug>/toggle_contact_info/', views.AdToggleContactInfo.as_view() , name='toggle_contact_info'),
 
     path('ad/new/', views.AdCreateView.as_view(), name='ad_create') ,
 
