@@ -10,6 +10,7 @@ urlpatterns = [
     path('category/<slug:category_slug>/ads/<slug:ad_slug>/detail/', views.AdDetailView.as_view(), name='ad_detail'),
     path('category/<slug:category_slug>/ads/<slug:ad_slug>/edit/', views.AdEditView.as_view( ), name='ad_edit'),
     path('category/<slug:category_slug>/ads/<slug:ad_slug>/delete/', views.AdDeleteView.as_view( ), name='ad_delete'),
+    path('category/<slug:category_slug>/ads/<slug:ad_slug>/like/', views.AdLikeView.as_view() , name='ad_like'),
 
     path('ad/new/', views.AdCreateView.as_view(), name='ad_create') ,
 

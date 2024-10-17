@@ -1,5 +1,9 @@
 {% extends 'base.html' %}
 
+{% block extra_head %}
+    {% include "ads/ad_like_scripts.html" %}
+{% endblock %}
+
 {% block content %}
 <div class="container mx-auto mt-8">
 
@@ -33,30 +37,49 @@
         <p class="mt-2 text-gray-600"><strong>Event End:</strong> {{ ad.event_end_date }}</p>
     {% endif %}
 
-    <div class="mt-6 flex space-x-4">
-        <button type="button" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition duration-200">Like</button>
-    </div>
-
     {% if user.is_authenticated %}
-    {% if ad.user == user %}
-        <div class="mt-6 flex space-x-4">
-            <a href="{% url 'ads:ad_edit' category_slug=ad.category.slug ad_slug=ad.slug %}" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition duration-200">
-                Edit
+        <div x-data="likeComponent({{ user_has_liked|lower }}, {{ ad.total_likes }}, '{{ csrf_token }}')" class="flex flex-col items-center justify-end text-right">
+        
+            <a @click="likeAd('{{ ad.category.slug }}', '{{ ad.slug }}')" class="inline-flex items-center justify-end mt-2 p-2 rounded-full hover:bg-gray-200 transition duration-200">
+                
+                <template x-if="liked">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="currentColor" viewBox="0 0 24 24" stroke="none">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                </template>
+                <template x-if="!liked">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                    </svg>
+                </template>
+
             </a>
-            <a href="{% url 'ads:ad_delete' category_slug=ad.category.slug ad_slug=ad.slug %}" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition duration-200">
-                Delete
-            </a>
+            
+            <p class="text-sm text-gray-600">
+                <span x-text="totalLikes"></span>
+            </p>
         </div>
-    {% else %}
-    <form method="POST">
-        {% csrf_token %}
-        <div class="flex items-center space-x-2 mt-6">
-            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-300 shadow-md">
-                Send Message
-            </button>
-        </div>
-    </form>
-    {% endif %}
+
+        {% if ad.user == user %}
+            <div class="mt-6 flex justify-around">
+                <a href="{% url 'ads:ad_edit' category_slug=ad.category.slug ad_slug=ad.slug %}" class="p-3 rounded-lg bg-red-500 text-white hover:bg-red-600 transition duration-200">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+
+                <a href="{% url 'ads:ad_delete' category_slug=ad.category.slug ad_slug=ad.slug %}" class="p-3 rounded-lg bg-red-500 text-white hover:bg-red-600 transition duration-200">
+                    <i class="fas fa-trash-alt"></i> Delete
+                </a>
+            </div>
+        {% else %}
+            <form method="POST">
+                {% csrf_token %}
+                <div class="flex mt-6">
+                    <button type="submit" class="p-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition duration-300 shadow-md">
+                        <i class="fas fa-envelope"></i> Send Message
+                    </button>
+                </div>
+            </form>
+        {% endif %}
     {% endif %}
 
 </div>
