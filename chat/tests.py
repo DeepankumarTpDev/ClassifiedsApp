@@ -125,6 +125,12 @@ class ConversationListViewTest(TestCase):
         self.assertIn('conversations', response.context)
         self.assertEqual(len(response.context['conversations']), 3)
 
+    def test_conversation_list_view_unauthenticated(self):
+        """Unauthenticated users should be redirected to login"""
+        self.client.logout()
+        response = self.client.get(reverse('chat:conversation_list'))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('chat:conversation_list')}")
+
 
 class ConversationDetailViewTests(TestCase):
     
@@ -165,6 +171,12 @@ class ConversationDetailViewTests(TestCase):
         response = self.client.get(reverse('chat:conversation_detail', args=[999]))  
         self.assertEqual(response.status_code, 404)  
 
+    def test_conversation_detail_view_unauthenticated(self):
+        """Unauthenticated users should be redirected to login"""
+        self.client.logout()
+        response = self.client.get(reverse('chat:conversation_detail', args=[self.chat.id]))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('chat:conversation_detail', args=[self.chat.id])}")
+
 
 class ConversationMessageSendViewTests(TestCase):
     
@@ -203,6 +215,13 @@ class ConversationMessageSendViewTests(TestCase):
     def test_send_message_empty(self):
         response = self.client.post(reverse('chat:send_message', args=[self.chat.id]), {'message': ''})
         self.assertEqual(Message.objects.count(), 1)  
+
+    def test_conversation_send_view_unauthenticated(self):
+        """Unauthenticated users should be redirected to login"""
+        self.client.logout()
+        response = self.client.post(reverse('chat:send_message', args=[self.chat.id]))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('chat:send_message', args=[self.chat.id])}")
+
 
 class ConversationMessageEditViewTests(TestCase):
     
@@ -247,6 +266,19 @@ class ConversationMessageEditViewTests(TestCase):
     def test_dispatch_edit(self):
         response = self.client.post(reverse('chat:edit_message', args=[self.chat.id, self.chat_message.id]), {'message': 'Another Edit'})
         self.assertEqual(Message.objects.first().message, 'Another Edit') 
+
+    def test_conversation_edit_view_unauthenticated(self):
+        """Unauthenticated users should be redirected to login"""
+        self.client.logout()
+        response = self.client.post(reverse('chat:edit_message', args=[self.chat.id, self.chat_message.id]))
+        self.assertRedirects(response, f"{reverse('chat:edit_message', args=[self.chat.id, self.chat_message.id])}")
+    
+    def test_conversation_edit_view_unauthenticated(self):
+        """Unauthenticated users should be redirected to login"""
+        self.client.logout()
+        response = self.client.get(reverse('chat:edit_message', args=[self.chat.id, self.chat_message.id]))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('chat:edit_message', args=[self.chat.id, self.chat_message.id])}")
+
 
 
 class ConversationMessagesDeleteViewTests(TestCase):
@@ -293,6 +325,13 @@ class ConversationMessagesDeleteViewTests(TestCase):
         response = self.client.post(reverse('chat:delete_message', args=[self.chat.id, self.chat_message.id]))
         self.assertEqual(response.status_code, 302)  
         self.assertEqual(Message.objects.count(), 0)  
+
+    def test_conversation_delete_view_unauthenticated(self):
+        """Unauthenticated users should be redirected to login"""
+        self.client.logout()
+        response = self.client.post(reverse('chat:delete_message', args=[self.chat.id, self.chat_message.id]))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('chat:delete_message', args=[self.chat.id, self.chat_message.id])}")
+
 
 
 class ConversationDetailTemplateTests(TestCase):

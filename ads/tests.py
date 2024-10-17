@@ -728,6 +728,40 @@ class AdCreateViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
+    def test_create_ad_unauthenticated(self):
+        """Unauthenticated users should be redirected to login"""
+        self.client.logout()
+        response = self.client.get(reverse('ads:ad_create'))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('ads:ad_create')}")
+
+    def test_create_ad_authenticated(self):
+        """Authenticated users can access the ad creation page"""
+        self.client.login(username='testuser', password='password')
+        response = self.client.get(reverse('ads:ad_create'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'ads/ad_create.html')
+
+    def test_post_ad_authenticated(self):
+        """Authenticated users can create an ad"""
+        self.client.login(username='testuser', password='password')
+        post_data = {
+            "title": "Test Ad",
+            "category": self.category.id,
+            "description": "This ad has valid data.",
+            "price": 100,
+            "location": "Valid Location",
+            "tags": 'gas',
+            "image": self.image_file,
+            "postal_code": "12345",
+            "contact_info": "valid@example.com",
+        }
+        response = self.client.post(reverse('ads:ad_create'), post_data)
+        self.assertEqual(Ads.objects.count(), 1)
+        ad = Ads.objects.first()
+        self.assertEqual(ad.title, 'Test Ad')
+        self.assertEqual(ad.user, self.user)
+        self.assertRedirects(response, reverse('ads:ads_by_category', args=[self.category.slug]))
+
 
 class AdEditViewTests(TestCase):
     def setUp(self):
@@ -735,6 +769,18 @@ class AdEditViewTests(TestCase):
         self.category = Category.objects.create(name='Test Category', slug='test-category')
         self.client.login(username='testuser', password='testpass')
         image_path = os.path.join('media', 'ads', 'events.jpg') 
+        self.ad = Ads.objects.create(
+            title=" Title", 
+            category=self.category,
+            description="Original description", 
+            price=100.00, 
+            tags='test',
+            contact_info ='original@example.com',
+            postal_code= '638056',
+            image = 'test.jpeg',
+            location="Original Location",
+            user=self.user
+        )
         with open(image_path, 'rb') as img_file:
             self.image_file = SimpleUploadedFile(
                 name='your_image.jpg',
@@ -833,6 +879,12 @@ class AdEditViewTests(TestCase):
 
         self.assertRedirects(response, reverse('ads:ad_detail', args=[ad.category.slug, ad.slug]))
 
+    def test_edit_ad_unauthenticated(self):
+        """Unauthenticated users should be redirected to login"""
+        self.client.logout()
+        response = self.client.get(reverse('ads:ad_edit', args=[self.category.slug, self.ad.slug]))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('ads:ad_edit', args=[self.category.slug, self.ad.slug])}")
+
 
 class AdDeleteViewTests(TestCase):
     def setUp(self):
@@ -877,6 +929,12 @@ class AdDeleteViewTests(TestCase):
         self.client.login(username='testuser', password='password')
         self.client.post(reverse('ads:ad_delete', args=[self.ad.category.slug, self.ad.slug]))
         self.assertFalse(Ads.objects.filter(id=self.ad.id).exists())
+
+    def test_delete_ad_unauthenticated(self):
+        """Unauthenticated users should be redirected to login"""
+        self.client.logout()
+        response = self.client.get(reverse('ads:ad_delete', args=[self.category.slug, self.ad.slug]))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('ads:ad_delete', args=[self.category.slug, self.ad.slug])}")
 
 
 class baseTemplateTests(TestCase):

@@ -1,9 +1,9 @@
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from .models import Ads, Category
 from chat.models import Chat,Message
-from django.shortcuts import get_object_or_404,redirect,get_list_or_404
+from django.shortcuts import get_object_or_404,redirect
 from .forms import AdsForm
-from django.contrib.auth.models import User
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.http import HttpResponseForbidden
 from functools import wraps
@@ -42,6 +42,10 @@ class AdDetailView(DetailView):
         return get_object_or_404(Ads, slug=self.kwargs['ad_slug'], category__slug=self.kwargs['category_slug'])
     
     def post(self, request, *args, **kwargs):
+
+        if not request.user.is_authenticated:
+            return HttpResponseForbidden("You need to log in to start a conversation.")
+        
         self.ad = self.get_object()
         chat = Chat.objects.filter(ad=self.ad, users=request.user).filter(users=self.ad.user).first()
         print('chat',chat)
@@ -60,7 +64,7 @@ class AdDetailView(DetailView):
             return redirect('chat:conversation_detail', chat_id=chat_obj.id)
     
 
-class AdCreateView(CreateView):
+class AdCreateView(LoginRequiredMixin, CreateView):
     model = Ads
     form_class = AdsForm
     template_name = 'ads/ad_create.html'
@@ -82,7 +86,7 @@ def user_is_ad_owner(view_func):
         return view_func(self, *args, **kwargs)
     return _wrapped_view
 
-class AdEditView(UpdateView):
+class AdEditView(LoginRequiredMixin, UpdateView):
     model = Ads
     form_class = AdsForm
     template_name = 'ads/ad_edit.html'
@@ -92,8 +96,12 @@ class AdEditView(UpdateView):
         return queryset.filter(created_by=self.request.user)
     
     @user_is_ad_owner
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+    @user_is_ad_owner
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
     def get_success_url(self):
         return reverse_lazy('ads:ad_detail', args=[self.object.category.slug, self.object.slug])
@@ -102,7 +110,7 @@ class AdEditView(UpdateView):
         return get_object_or_404(Ads, slug=self.kwargs['ad_slug'], category__slug=self.kwargs['category_slug'])
     
 
-class AdDeleteView(DeleteView):
+class AdDeleteView(LoginRequiredMixin, DeleteView):
     model=Ads
     
     def get_context_data(self, **kwargs):
@@ -117,6 +125,10 @@ class AdDeleteView(DeleteView):
         return get_object_or_404(Ads, slug=self.kwargs['ad_slug'], category__slug=self.kwargs['category_slug'])
 
     @user_is_ad_owner
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+    @user_is_ad_owner
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
