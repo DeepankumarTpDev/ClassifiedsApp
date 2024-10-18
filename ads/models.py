@@ -27,7 +27,6 @@ class Ads(models.Model):
     title = models.CharField(max_length=255, blank=False, null=False)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
-    image = models.ImageField(upload_to='ads/%Y/%m/%d/', blank=False, null=False)
     description = models.TextField(blank=False, null=False)
     tags = TaggableManager()  # Using TaggableManager for tags
     location = models.CharField(max_length=255, blank=False, null=False)
@@ -74,3 +73,9 @@ class Ads(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+
+class AdImage(models.Model):
+    ad = models.ForeignKey(Ads, related_name='images', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='ads/%Y/%m/%d/', blank=False, null=False)
+    created_on  = models.DateTimeField(auto_now_add=True)
