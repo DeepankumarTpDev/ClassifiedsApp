@@ -671,6 +671,42 @@ class AdCreateViewTests(TestCase):
         form = response.context['form']
         self.assertIn('Postal code must be at least 5 characters long.', form.non_field_errors())
 
+    def test_create_ad_invalid_contact_info_email(self):
+        response = self.client.post(reverse('ads:ad_create'), {
+            "title": "Valid Test Ad",
+            "category": self.category.id,
+            "description": "This ad has valid data.",
+            "price": 100,
+            "location": "Valid Location",
+            "tags": 'gas',
+            "image": self.image_file,
+            "postal_code": "12345",
+            "contact_info": "invalid-email",
+        })
+
+        form = response.context['form']
+        self.assertFalse(form.is_valid())
+        self.assertIn('contact_info', form.errors)
+        self.assertEqual(form.errors['contact_info'], ['Contact info must be a valid email address or a 10-digit mobile number.'])
+
+    def test_create_ad_invalid_contact_info_mobile(self):
+        response = self.client.post(reverse('ads:ad_create'), {
+            "title": "Valid Test Ad",
+            "category": self.category.id,
+            "description": "This ad has valid data.",
+            "price": 100,
+            "location": "Valid Location",
+            "tags": 'gas',
+            "image": self.image_file,
+            "postal_code": "12345",
+            "contact_info": '12345',
+        })
+
+        form = response.context['form']
+        self.assertFalse(form.is_valid())
+        self.assertIn('contact_info', form.errors)
+        self.assertEqual(form.errors['contact_info'], ['Contact info must be a valid email address or a 10-digit mobile number.'])
+
     def test_create_ad_invalid_missing_image(self):
         response = self.client.post(reverse('ads:ad_create'), {
             "title": "Valid Test Ad",
@@ -1000,3 +1036,134 @@ class AdDetailTemplateTests(TestCase):
 
         self.assertNotContains(response, 'Edit')
         self.assertNotContains(response, 'Delete')
+
+
+class AdLikeViewTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='password')
+        self.category = Category.objects.create(name='Test Category', slug='test-category')
+        self.ad = Ads.objects.create(
+            title="Original Title", 
+            category=self.category,
+            description="Original description", 
+            price=100.00, 
+            tags='test',
+            contact_info='original@example.com',
+            postal_code='638056',
+            image='test.jpeg',
+            location="Original Location",
+            user=self.user,
+            total_likes=0  
+        )
+        self.like_url = reverse('ads:ad_like', kwargs={'category_slug': self.ad.category.slug, 'ad_slug': self.ad.slug})
+
+    def test_like_ad_authenticated_user(self):
+        self.client.login(username='testuser', password='password')
+        response = self.client.post(self.like_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 200)
+        self.ad.refresh_from_db()
+        self.assertTrue(self.ad.users_like.filter(id=self.user.id).exists())
+        self.assertEqual(response.json()['liked'], True)
+        self.assertEqual(response.json()['total_likes'], 1)
+
+    def test_unlike_ad_authenticated_user(self):
+        self.ad.users_like.add(self.user)
+        self.ad.total_likes += 1
+        self.ad.save()
+        
+        self.client.login(username='testuser', password='password')
+        response = self.client.post(self.like_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 200)
+        self.ad.refresh_from_db()
+        self.assertFalse(self.ad.users_like.filter(id=self.user.id).exists())
+        self.assertEqual(response.json()['liked'], False)
+        self.assertEqual(response.json()['total_likes'], 0)
+
+    def test_like_ad_unauthenticated_user(self):
+        response = self.client.post(self.like_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 302)
+
+    def test_like_ad_total_likes(self):
+        self.client.login(username='testuser', password='password')
+        response = self.client.post(self.like_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.ad.refresh_from_db()
+        self.assertEqual(self.ad.users_like.count(), 1)
+        self.assertEqual(response.json()['total_likes'], 1)
+
+    def test_unlike_ad_total_likes_decrease(self):
+        self.ad.users_like.add(self.user)
+        self.ad.total_likes += 1
+        self.ad.save()
+        
+        self.client.login(username='testuser', password='password')
+        response = self.client.post(self.like_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.ad.refresh_from_db()
+        self.assertEqual(self.ad.users_like.count(), 0)
+        self.assertEqual(response.json()['total_likes'], 0)
+
+    def test_invalid_ad_slug(self):
+        self.client.login(username='testuser', password='password')
+        invalid_like_url = reverse('ads:ad_like', kwargs={'category_slug': 'gigs', 'ad_slug': 'invalid-slug'})
+        response = self.client.post(invalid_like_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 404)
+
+
+class AdToggleContactInfoTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        self.client.login(username='testuser', password='testpassword')
+        self.category = Category.objects.create(name='Test Category', slug='test-category')
+        self.ad = Ads.objects.create(
+            title="ContactInfo Title", 
+            category=self.category,
+            description="Original description", 
+            price=100.00, 
+            tags='test',
+            contact_info='original@example.com',
+            postal_code='638056',
+            image='test.jpeg',
+            location="Original Location",
+            user=self.user
+        )
+
+    def test_toggle_contact_info_hide(self):
+        self.ad.save()
+
+        self.assertTrue(self.ad.show_contact_info)
+
+        response = self.client.post(reverse('ads:toggle_contact_info', kwargs={
+            'category_slug': self.ad.category.slug,
+            'ad_slug': self.ad.slug
+        }), {
+            'ad_id': self.ad.id,
+            'show_contact_info': 'True'
+        })
+
+        self.ad.refresh_from_db()
+
+        self.assertFalse(self.ad.show_contact_info)
+        self.assertRedirects(response, reverse('ads:ad_detail', kwargs={
+            'category_slug': self.ad.category.slug,
+            'ad_slug': self.ad.slug
+        }))
+
+
+    def test_toggle_contact_info_show(self):
+        self.ad.show_contact_info=False
+        self.assertFalse(self.ad.show_contact_info)
+        response = self.client.post(reverse('ads:toggle_contact_info', kwargs={
+            'category_slug': self.ad.category.slug,
+            'ad_slug': self.ad.slug
+        }), {
+            'ad_id': self.ad.id,
+            'show_contact_info': 'False'  
+        })
+
+        self.ad.refresh_from_db()
+
+        self.assertTrue(self.ad.show_contact_info)
+        self.assertRedirects(response, reverse('ads:ad_detail', kwargs={
+            'category_slug': self.ad.category.slug,
+            'ad_slug': self.ad.slug
+        }))

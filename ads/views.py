@@ -8,6 +8,7 @@ from django.urls import reverse_lazy
 from django.http import HttpResponseForbidden
 from functools import wraps
 from django.views import View
+from django.http import JsonResponse
 
 
 class HomeView(ListView):
@@ -40,6 +41,12 @@ class AdDetailView(DetailView):
 
     def get_object(self):
         return get_object_or_404(Ads, slug=self.kwargs['ad_slug'], category__slug=self.kwargs['category_slug'])
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        ad = self.get_object()
+        context['user_has_liked'] = self.request.user in ad.users_like.all()
+        return context
     
     def post(self, request, *args, **kwargs):
 
@@ -132,3 +139,35 @@ class AdDeleteView(LoginRequiredMixin, DeleteView):
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
+
+class AdLikeView(LoginRequiredMixin, View):
+    def post(self, request, category_slug, ad_slug, *args, **kwargs):
+        ad = get_object_or_404(Ads, category__slug=category_slug, slug=ad_slug)
+
+        if request.user in ad.users_like.all():
+            ad.users_like.remove(request.user)
+            ad.total_likes -= 1
+            ad.save()
+            liked = False
+        else:
+            ad.users_like.add(request.user)
+            liked = True
+            ad.total_likes += 1
+            ad.save()
+
+        return JsonResponse({
+            'liked': liked,
+            'total_likes': ad.total_likes,
+        })
+
+
+class AdToggleContactInfo(LoginRequiredMixin, View):
+    def post(self, request, category_slug, ad_slug, *args, **kwargs):
+        ad = get_object_or_404(Ads, category__slug=category_slug, slug=ad_slug)
+
+        show_contact_info = request.POST.get('show_contact_info') == 'True'
+        ad.show_contact_info = not show_contact_info  
+        ad.save()
+
+        return redirect('ads:ad_detail', category_slug=ad.category.slug, ad_slug=ad.slug)
+    

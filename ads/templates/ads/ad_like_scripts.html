@@ -1,0 +1,23 @@
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('likeComponent', (userHasLiked, totalLikes, csrfToken) => ({
+            liked: userHasLiked,
+            totalLikes: totalLikes,
+            likeAd(adCategorySlug, adSlug) {
+                const url = `/category/${adCategorySlug}/ads/${adSlug}/like/`;
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    this.liked = data.liked;
+                    this.totalLikes = data.total_likes;
+                });
+            }
+        }));
+    });    
+</script>
