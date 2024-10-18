@@ -2,13 +2,13 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from .models import Ads, Category
 from chat.models import Chat,Message
 from django.shortcuts import get_object_or_404,redirect
-from .forms import AdsForm
+from .forms import AdsForm, AdImageFormSet
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.http import HttpResponseForbidden
 from functools import wraps
 from django.views import View
-from django.http import JsonResponse
+from django.http import JsonResponse,HttpResponseRedirect
 
 
 class HomeView(ListView):
@@ -79,9 +79,23 @@ class AdCreateView(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse_lazy('ads:ads_by_category', args=[self.object.category.slug])
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['image_form'] = AdImageFormSet()
+        return context
+    
     def form_valid(self, form):
         form.instance.user = self.request.user
-        return super().form_valid(form)
+        image_form = AdImageFormSet(self.request.POST,self.request.FILES, instance=self.object)
+
+        if form.is_valid() and image_form.is_valid():
+            print("form.is_valid()")
+            self.object = form.save()
+            image_form.instance = self.object
+            image_form.save()
+            return HttpResponseRedirect(self.get_success_url())
+
+        return self.form_invalid(form)
 
 
 def user_is_ad_owner(view_func):
@@ -109,6 +123,26 @@ class AdEditView(LoginRequiredMixin, UpdateView):
     @user_is_ad_owner
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super(AdEditView, self).get_context_data(**kwargs)
+        if self.request.POST:
+            context['image_form'] = AdImageFormSet(self.request.POST,self.request.FILES, instance=self.object)
+        else:
+            context['image_form'] = AdImageFormSet(instance=self.object)
+        return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        image_form = context['image_form']
+
+        if form.is_valid() and image_form.is_valid():
+            self.object = form.save()
+            image_form.instance = self.object
+            image_form.save()
+            return HttpResponseRedirect(self.get_success_url())
+
+        return self.form_invalid(form)
 
     def get_success_url(self):
         return reverse_lazy('ads:ad_detail', args=[self.object.category.slug, self.object.slug])
