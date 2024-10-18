@@ -9,7 +9,8 @@ from django.utils.text import slugify
 from io import BytesIO
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-import os
+from PIL import Image
+import io,os
 
 class CategoryModelTest(TestCase):
     """
@@ -114,8 +115,7 @@ class AdsModelTest(TestCase):
             location="Test Location",
             postal_code="12345",
             contact_info="test@example.com",
-            price=99.99,
-            image=self.create_image()
+            price=99.99
         )
         self.assertIsNotNone(ad.id)  
         self.assertEqual(ad.slug, slugify(ad.title))  
@@ -130,8 +130,7 @@ class AdsModelTest(TestCase):
                 location="Test Location",
                 postal_code="12345",
                 contact_info="test@example.com",
-                price=99.99,
-                image=self.create_image()
+                price=99.99
             )
 
     def test_ads_without_title(self):
@@ -145,8 +144,7 @@ class AdsModelTest(TestCase):
                 location="Test Location",
                 postal_code="12345",
                 contact_info="test@example.com",
-                price=99.99,
-                image=self.create_image()
+                price=99.99
             )
             ad.full_clean() 
 
@@ -161,8 +159,7 @@ class AdsModelTest(TestCase):
                 location="Test Location",
                 postal_code="12345",
                 contact_info="test@example.com",
-                price=99.99,
-                image=self.create_image()
+                price=99.99
             )
             ad.save()  
 
@@ -177,8 +174,7 @@ class AdsModelTest(TestCase):
             location="Test Location",
             postal_code="12345",
             contact_info="test@example.com",
-            price=50.00,
-            image=self.create_image()
+            price=50.00
         )
         self.assertEqual(ad.slug, "slug-test")  
 
@@ -193,8 +189,7 @@ class AdsModelTest(TestCase):
             location="Test Location",
             postal_code="12345",
             contact_info="test@example.com",
-            price=-10.00,  
-            image=self.create_image()
+            price=-10.00
         )
 
         with self.assertRaises(ValidationError):
@@ -211,8 +206,7 @@ class AdsModelTest(TestCase):
             location="Test Location",
             postal_code="123456849393",  
             contact_info="test@example.com",
-            price=20.00,
-            image=self.create_image()
+            price=20.00
         )
         
         with self.assertRaises(ValidationError):
@@ -229,8 +223,7 @@ class AdsModelTest(TestCase):
             location="Test Location",
             postal_code="1234",  
             contact_info="test@example.com",
-            price=20.00,
-            image=self.create_image()
+            price=20.00
         )
         
         with self.assertRaises(ValidationError):
@@ -246,8 +239,7 @@ class AdsModelTest(TestCase):
             location="Test Location",
             postal_code="12345",
             contact_info="test@example.com",
-            price=10.00,
-            image=self.create_image()
+            price=10.00
         )
         self.assertTrue(ad.show_contact_info) 
 
@@ -264,8 +256,7 @@ class AdsModelTest(TestCase):
             contact_info="test@example.com",
             price=20.00,
             event_start_date="2024-12-01T10:00:00Z",
-            event_end_date="2024-12-02T10:00:00Z",
-            image=self.create_image()
+            event_end_date="2024-12-02T10:00:00Z"
         )
         self.assertGreater(ad.event_end_date, ad.event_start_date)  
 
@@ -283,8 +274,7 @@ class AdsModelTest(TestCase):
             contact_info="test@example.com",
             price=20.00,
             event_start_date="2024-12-02T10:00:00Z",  
-            event_end_date="2024-12-01T10:00:00Z",    
-            image=self.create_image()
+            event_end_date="2024-12-01T10:00:00Z"
         )
         
         with self.assertRaises(ValidationError):
@@ -302,7 +292,6 @@ class AdsModelTest(TestCase):
             postal_code="12345",
             contact_info="test@example.com",
             price=25.00,
-            image=self.create_image()
         )
         self.assertIsNotNone(ad.created_at)  
 
@@ -318,55 +307,9 @@ class AdsModelTest(TestCase):
             postal_code="12345",
             contact_info="test@example.com",
             price=30.00,
-            image=self.create_image()
         )
         ad.tags.add("tag1", "tag2")  
         self.assertEqual(ad.tags.count(), 2)  
-
-    def test_image_upload(self):
-        """Test that the image field is correctly populated with an uploaded image."""
-
-        ad = Ads.objects.create(
-            user=self.user,
-            title="Image Ad",
-            category=self.category,
-            description="This ad has an image.",
-            location="Test Location",
-            postal_code="12345",
-            contact_info="test@example.com",
-            price=40.00,
-            image=self.create_image()
-        )
-        self.assertIsNotNone(ad.image.url)  
-
-    def test_image_empty_field(self):
-        """Test that an ad without an image raises a ValidationError."""
-
-        ad = Ads(
-            user=self.user,
-            title="Image Ad",
-            category=self.category,
-            description="This ad has an image.",
-            location="Test Location",
-            postal_code="12345",
-            contact_info="test@example.com",
-            price=40.00,
-        )
-        
-        with self.assertRaises(ValidationError):
-            ad.full_clean()  
-
-    def create_image(self):
-        """Helper method to create a dummy image file for testing."""
-
-        return InMemoryUploadedFile(
-            BytesIO(b"image data"),  
-            None,  
-            'test_image.jpg',  
-            'image/jpeg',  
-            len(b"image data"),  
-            None  
-        )
 
 
 class HomeViewTests(TestCase):
@@ -420,7 +363,7 @@ class AdsListViewTests(TestCase):
         self.user = User.objects.create_user(username='testuser', password='testpassword')
         self.category = Category.objects.create(name='Test Category', slug='test-category')
         self.ads = [
-            Ads.objects.create(user=self.user ,title=f'Test Ad {i}', slug=f'test-ad-{i}', category=self.category, price=100 + i, image='test_image.jpg')
+            Ads.objects.create(user=self.user ,title=f'Test Ad {i}', slug=f'test-ad-{i}', category=self.category, price=100 + i)
             for i in range(1, 21)
         ]
     def test_ads_list_view_status_code(self):
@@ -428,7 +371,7 @@ class AdsListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_ads_list_view_with_valid_category(self):
-        ad=Ads.objects.create(user=self.user ,title=f'Test Ad ', slug=f'test-ad', category=self.category, price=100, image='test_image.jpg')
+        ad=Ads.objects.create(user=self.user ,title=f'Test Ad ', slug=f'test-ad', category=self.category, price=100,)
             
         response = self.client.get(reverse('ads:ads_by_category', args=[self.category.slug]))
         self.assertIn(ad, response.context['ads'])
@@ -475,7 +418,7 @@ class AdDetailViewTests(TestCase):
         self.user1 = User.objects.create_user(username='user1', password='password')
         self.user2 = User.objects.create_user(username='user2', password='password')
         self.category = Category.objects.create(name='Test Category', slug='test-category')
-        self.ad = Ads.objects.create(user=self.user2, title='Test Ad', slug='test-ad', tags='ex', category=self.category, price=100.00, image='test_image.jpg', event_start_date="2024-12-01T10:00:00Z", event_end_date="2024-12-02T10:00:00Z")
+        self.ad = Ads.objects.create(user=self.user2, title='Test Ad', slug='test-ad', tags='ex', category=self.category, price=100.00, event_start_date="2024-12-01T10:00:00Z", event_end_date="2024-12-02T10:00:00Z")
 
     def test_ad_detail_view_status_code(self):
         response = self.client.get(reverse('ads:ad_detail', args=[self.category.slug, self.ad.slug]))
@@ -499,7 +442,7 @@ class AdDetailViewTests(TestCase):
 
     def test_ad_detail_view_event_dates_display(self):
         category = Category.objects.create(name='Events', slug='events')
-        ad = Ads.objects.create(user=self.user1, title='Event Ad', slug='event-ad', category=category, price=100.0, image='event_image.jpg', event_start_date="2024-12-01T10:00:00Z", event_end_date="2024-12-02T10:00:00Z")
+        ad = Ads.objects.create(user=self.user1, title='Event Ad', slug='event-ad', category=category, price=100.0, event_start_date="2024-12-01T10:00:00Z", event_end_date="2024-12-02T10:00:00Z")
         response = self.client.get(reverse('ads:ad_detail', args=[category.slug, ad.slug]))
         self.assertContains(response, 'Event Start:')
         self.assertContains(response, 'Event End:')
@@ -529,30 +472,40 @@ class AdCreateViewTests(TestCase):
         self.category = Category.objects.create(name='Test Category', slug='test-category')
         self.user = User.objects.create_user(username='testuser', password='testpass')
         self.client.login(username='testuser', password='testpass')
-        image_path = os.path.join('media', 'ads', 'events.jpg') 
-        with open(image_path, 'rb') as img_file:
-            self.image_file = SimpleUploadedFile(
-                name='your_image.jpg',
-                content=img_file.read(),
-                content_type='image/jpeg'  
-            )
+    
+    def get_valid_image(self):
+        # Create a valid image file for testing
+        return SimpleUploadedFile(name='test_image.jpg', content=b'', content_type='image/jpeg')
 
     def test_create_ad_valid(self):
         self.client.login(username='testuser', password='password')
-        
-        response = self.client.post(reverse('ads:ad_create'), {
+        form_data = {
             "title": "Valid Test Ad",
             "category": self.category.id,
             "description": "This ad has valid data.",
             "price": 100,
             "location": "Valid Location",
             "tags": 'gas',
-            "image": self.image_file,
-            "postal_code": "12345",
+            "postal_code": "123456",
             "contact_info": "valid@example.com",
-        })
+        }
+
+        image = Image.new('RGB', (100, 100), color = 'red')
+        img_io = io.BytesIO()
+        image.save(img_io, format='JPEG')
+        img_io.seek(0)
+
+        image_data = {
+            'images-TOTAL_FORMS': '1',
+            'images-INITIAL_FORMS': '0',
+            'images-MIN_NUM_FORMS': '1',
+            'images-MAX_NUM_FORMS': '5',
+            'images-0-image': SimpleUploadedFile(name='test_image.jpg', content=img_io.read(), content_type='image/jpeg'),
+        }
+
+        combined_data = {**form_data, **image_data}
         
-        self.assertEqual(response.status_code, 302)
+        response = self.client.post(reverse('ads:ad_create'), combined_data)
         self.assertRedirects(response, reverse('ads:ads_by_category', args=[self.category.slug]))
 
     def test_create_ad_invalid_missing_title(self):
@@ -562,7 +515,6 @@ class AdCreateViewTests(TestCase):
             "price": 100,
             "location": "Valid Location",
             "tags": 'gas',
-            "image": self.image_file,
             "postal_code": "12345",
             "contact_info": "valid@example.com",
         })
@@ -578,7 +530,6 @@ class AdCreateViewTests(TestCase):
             "price": 100,
             "location": "Valid Location",
             "tags": 'gas',
-            "image": self.image_file,
             "postal_code": "12345",
             "contact_info": "valid@example.com",
         })
@@ -595,7 +546,6 @@ class AdCreateViewTests(TestCase):
             "price": 100,
             "location": "Valid Location",
             "tags": 'gas',
-            "image": self.image_file,
             "postal_code": "12345",
             "contact_info": "valid@example.com",
         })
@@ -612,7 +562,6 @@ class AdCreateViewTests(TestCase):
             "description": "This ad has valid data.",
             "location": "Valid Location",
             "tags": 'gas',
-            "image": self.image_file,
             "postal_code": "12345",
             "contact_info": "valid@example.com",
         })
@@ -630,7 +579,6 @@ class AdCreateViewTests(TestCase):
             "price": -50,
             "location": "Valid Location",
             "tags": 'gas',
-            "image": self.image_file,
             "postal_code": "12345",
             "contact_info": "valid@example.com",
         })
@@ -645,7 +593,6 @@ class AdCreateViewTests(TestCase):
             "description": "This ad has valid data.",
             "price": 100,
             "tags": 'gas',
-            "image": self.image_file,
             "postal_code": "12345",
             "contact_info": "valid@example.com",
         })
@@ -663,7 +610,6 @@ class AdCreateViewTests(TestCase):
             "price": 100,
             "location": "Valid Location",
             "tags": 'gas',
-            "image": self.image_file,
             "postal_code": "123",
             "contact_info": "valid@example.com",
         })
@@ -679,7 +625,6 @@ class AdCreateViewTests(TestCase):
             "price": 100,
             "location": "Valid Location",
             "tags": 'gas',
-            "image": self.image_file,
             "postal_code": "12345",
             "contact_info": "invalid-email",
         })
@@ -697,7 +642,6 @@ class AdCreateViewTests(TestCase):
             "price": 100,
             "location": "Valid Location",
             "tags": 'gas',
-            "image": self.image_file,
             "postal_code": "12345",
             "contact_info": '12345',
         })
@@ -706,23 +650,6 @@ class AdCreateViewTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn('contact_info', form.errors)
         self.assertEqual(form.errors['contact_info'], ['Contact info must be a valid email address or a 10-digit mobile number.'])
-
-    def test_create_ad_invalid_missing_image(self):
-        response = self.client.post(reverse('ads:ad_create'), {
-            "title": "Valid Test Ad",
-            "category": self.category.id,
-            "description": "This ad has valid data.",
-            "price": 100,
-            "location": "Valid Location",
-            "tags": 'gas',
-            "postal_code": "12345",
-            "contact_info": "valid@example.com",
-        })
-
-        form = response.context['form']  
-        self.assertTrue(form.errors)  
-        self.assertIn('image', form.errors)  
-        self.assertEqual(form.errors['image'], ['This field is required.'])
 
     def test_create_ad_template_used(self):
         """Test that the correct template is used for the ad creation view."""
@@ -743,24 +670,38 @@ class AdCreateViewTests(TestCase):
         self.assertContains(response, 'name="price"')
         self.assertContains(response, 'name="location"')
         self.assertContains(response, 'name="tags"')
-        self.assertContains(response, 'name="image"')
         self.assertContains(response, 'name="postal_code"')
         self.assertContains(response, 'name="contact_info"')
 
     def test_create_ad_invalid_form_submission(self):
         """Test that invalid form submission returns to the same template with errors."""
         self.client.login(username='testuser', password='testpass')
-        
-        response = self.client.post(reverse('ads:ad_create'), {
+        form_data = {
             "category": self.category.id,
             "description": "This ad has valid data.",
             "price": 100,
             "location": "Valid Location",
             "tags": 'gas',
-            "image": self.image_file,
             "postal_code": "12345",
             "contact_info": "valid@example.com",
-        })
+        }
+
+        image = Image.new('RGB', (100, 100), color = 'red')
+        img_io = io.BytesIO()
+        image.save(img_io, format='JPEG')
+        img_io.seek(0)
+
+        image_data = {
+            'images-TOTAL_FORMS': '1',
+            'images-INITIAL_FORMS': '0',
+            'images-MIN_NUM_FORMS': '1',
+            'images-MAX_NUM_FORMS': '5',
+            'images-0-image': SimpleUploadedFile(name='test_image.jpg', content=img_io.read(), content_type='image/jpeg'),
+        }
+
+        combined_data = {**form_data, **image_data}
+        
+        response = self.client.post(reverse('ads:ad_create'), combined_data)
 
         self.assertEqual(response.status_code, 200)
 
@@ -780,18 +721,32 @@ class AdCreateViewTests(TestCase):
     def test_post_ad_authenticated(self):
         """Authenticated users can create an ad"""
         self.client.login(username='testuser', password='password')
-        post_data = {
+        form_data = {
             "title": "Test Ad",
             "category": self.category.id,
             "description": "This ad has valid data.",
             "price": 100,
             "location": "Valid Location",
             "tags": 'gas',
-            "image": self.image_file,
             "postal_code": "12345",
             "contact_info": "valid@example.com",
         }
-        response = self.client.post(reverse('ads:ad_create'), post_data)
+
+        image = Image.new('RGB', (100, 100), color = 'red')
+        img_io = io.BytesIO()
+        image.save(img_io, format='JPEG')
+        img_io.seek(0)
+
+        image_data = {
+            'images-TOTAL_FORMS': '1',
+            'images-INITIAL_FORMS': '0',
+            'images-MIN_NUM_FORMS': '1',
+            'images-MAX_NUM_FORMS': '5',
+            'images-0-image': SimpleUploadedFile(name='test_image.jpg', content=img_io.read(), content_type='image/jpeg'),
+        }
+
+        combined_data = {**form_data, **image_data}
+        response = self.client.post(reverse('ads:ad_create'), combined_data)
         self.assertEqual(Ads.objects.count(), 1)
         ad = Ads.objects.first()
         self.assertEqual(ad.title, 'Test Ad')
@@ -804,7 +759,6 @@ class AdEditViewTests(TestCase):
         self.user = User.objects.create_user(username='testuser', password='testpass')
         self.category = Category.objects.create(name='Test Category', slug='test-category')
         self.client.login(username='testuser', password='testpass')
-        image_path = os.path.join('media', 'ads', 'events.jpg') 
         self.ad = Ads.objects.create(
             title=" Title", 
             category=self.category,
@@ -813,16 +767,9 @@ class AdEditViewTests(TestCase):
             tags='test',
             contact_info ='original@example.com',
             postal_code= '638056',
-            image = 'test.jpeg',
             location="Original Location",
             user=self.user
         )
-        with open(image_path, 'rb') as img_file:
-            self.image_file = SimpleUploadedFile(
-                name='your_image.jpg',
-                content=img_file.read(),
-                content_type='image/jpeg'  
-            )
 
     def test_edit_ad_valid(self):
         ad = Ads.objects.create(
@@ -833,12 +780,11 @@ class AdEditViewTests(TestCase):
             tags='test',
             contact_info ='original@example.com',
             postal_code= '638056',
-            image = self.image_file,
             location="Original Location",
             user=self.user  
         )
-        response = self.client.post(reverse('ads:ad_edit', args=[ad.category.slug, ad.slug]), {
-            "title": "Updated Title",
+        form_data = {
+             "title": "Updated Title",
             "category": self.category.id,
             "slug": ad.slug,
             "description": "Updated description.",
@@ -847,7 +793,24 @@ class AdEditViewTests(TestCase):
             "tags": 'gas',
             "postal_code": "54321",
             "contact_info": "updated@example.com",
-        })
+        }
+
+        image = Image.new('RGB', (100, 100), color = 'red')
+        img_io = io.BytesIO()
+        image.save(img_io, format='JPEG')
+        img_io.seek(0)
+
+        image_data = {
+            'images-TOTAL_FORMS': '1',
+            'images-INITIAL_FORMS': '0',
+            'images-MIN_NUM_FORMS': '1',
+            'images-MAX_NUM_FORMS': '5',
+            'images-0-image': SimpleUploadedFile(name='test_image.jpg', content=img_io.read(), content_type='image/jpeg'),
+        }
+
+        combined_data = {**form_data, **image_data}\
+        
+        response = self.client.post(reverse('ads:ad_edit', args=[ad.category.slug, ad.slug]), combined_data)
         
         self.assertRedirects(response, reverse('ads:ad_detail', args=[ad.category.slug, ad.slug]))
         ad.refresh_from_db()
@@ -865,12 +828,12 @@ class AdEditViewTests(TestCase):
             tags='test',
             contact_info ='original@example.com',
             postal_code= '638056',
-            image = self.image_file,
             location="Original Location",
             user=other_user  
         )
         self.client.login(username='testuser', password='testpass')
-        response = self.client.post(reverse('ads:ad_edit', args=[ad.category.slug, ad.slug]), {
+
+        form_data = {
             "title": "Updated Title",
             "category": self.category,
             "slug": ad.slug,
@@ -880,7 +843,24 @@ class AdEditViewTests(TestCase):
             "tags": 'gas',
             "postal_code": "54321",
             "contact_info": "updated@example.com",
-        })
+        }
+
+        image = Image.new('RGB', (100, 100), color = 'red')
+        img_io = io.BytesIO()
+        image.save(img_io, format='JPEG')
+        img_io.seek(0)
+
+        image_data = {
+            'images-TOTAL_FORMS': '1',
+            'images-INITIAL_FORMS': '0',
+            'images-MIN_NUM_FORMS': '1',
+            'images-MAX_NUM_FORMS': '5',
+            'images-0-image': SimpleUploadedFile(name='test_image.jpg', content=img_io.read(), content_type='image/jpeg'),
+        }
+
+        combined_data = {**form_data, **image_data}
+
+        response = self.client.post(reverse('ads:ad_edit', args=[ad.category.slug, ad.slug]), combined_data)
         self.assertEqual(response.status_code, 403)
 
     def test_edit_ad_not_found(self):
@@ -897,11 +877,11 @@ class AdEditViewTests(TestCase):
             tags='test',
             contact_info ='original@example.com',
             postal_code= '638056',
-            image = self.image_file,
             location="Original Location",
             user=self.user
         )
-        response = self.client.post(reverse('ads:ad_edit', args=[ad.category.slug, ad.slug]), {
+
+        form_data = {
             "title": "Updated Title",
             "category": self.category.id,
             "slug": ad.slug,
@@ -911,7 +891,23 @@ class AdEditViewTests(TestCase):
             "tags": 'gas',
             "postal_code": "54321",
             "contact_info": "updated@example.com",
-        })
+        }
+
+        image = Image.new('RGB', (100, 100), color = 'red')
+        img_io = io.BytesIO()
+        image.save(img_io, format='JPEG')
+        img_io.seek(0)
+
+        image_data = {
+            'images-TOTAL_FORMS': '1',
+            'images-INITIAL_FORMS': '0',
+            'images-MIN_NUM_FORMS': '1',
+            'images-MAX_NUM_FORMS': '5',
+            'images-0-image': SimpleUploadedFile(name='test_image.jpg', content=img_io.read(), content_type='image/jpeg'),
+        }
+
+        combined_data = {**form_data, **image_data}
+        response = self.client.post(reverse('ads:ad_edit', args=[ad.category.slug, ad.slug]), combined_data)
 
         self.assertRedirects(response, reverse('ads:ad_detail', args=[ad.category.slug, ad.slug]))
 
@@ -934,7 +930,6 @@ class AdDeleteViewTests(TestCase):
             tags='test',
             contact_info='original@example.com',
             postal_code='638056',
-            image='test_image.jpg',
             location="Original Location",
             user=self.user  
         )
@@ -1011,7 +1006,6 @@ class AdDetailTemplateTests(TestCase):
             tags='test',
             contact_info ='original@example.com',
             postal_code= '638056',
-            image = 'test.jpeg',
             location="Original Location",
             user=self.user
         )
@@ -1051,7 +1045,6 @@ class AdLikeViewTests(TestCase):
             tags='test',
             contact_info='original@example.com',
             postal_code='638056',
-            image='test.jpeg',
             location="Original Location",
             user=self.user,
             total_likes=0  
@@ -1122,7 +1115,6 @@ class AdToggleContactInfoTests(TestCase):
             tags='test',
             contact_info='original@example.com',
             postal_code='638056',
-            image='test.jpeg',
             location="Original Location",
             user=self.user
         )

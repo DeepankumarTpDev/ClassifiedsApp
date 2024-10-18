@@ -1,7 +1,8 @@
 from django import forms
-from .models import Ads
+from .models import Ads, AdImage
 from django.core.exceptions import ValidationError
 import re
+from django.forms import inlineformset_factory
 
 
 class AdsForm(forms.ModelForm):
@@ -27,3 +28,20 @@ class AdsForm(forms.ModelForm):
                 raise ValidationError("Contact info must be a valid email address or a 10-digit mobile number.")
             
             return contact_info
+
+
+class AdImageForm(forms.ModelForm):
+    class Meta:
+        model= AdImage
+        fields=('image',)
+        
+
+AdImageFormSet = inlineformset_factory(
+    Ads,
+    AdImage,
+    form=AdImageForm,
+    extra=2,
+    min_num=1,
+    max_num=5,
+    can_delete=True  
+)
