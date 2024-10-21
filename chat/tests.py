@@ -19,7 +19,6 @@ class ChatMessageModelTest(TestCase):
             tags='test',
             contact_info ='original@example.com',
             postal_code= '638056',
-            image = 'test.jpg',
             location="Original Location",
             user=self.user1  
         )
@@ -79,8 +78,7 @@ class ConversationListViewTest(TestCase):
             location="Test Location",
             postal_code="12345",
             contact_info="test1@example.com",
-            price=99.99,
-            image='image1.jpg'
+            price=99.99
         )
         self.ad2 = Ads.objects.create(
             user=self.user,
@@ -90,8 +88,7 @@ class ConversationListViewTest(TestCase):
             location="Test Location",
             postal_code="54321",
             contact_info="test2@example.com",
-            price=199.99,
-            image='image2.jpg'
+            price=199.99
         )
         self.ad3 = Ads.objects.create(
             user=self.user,
@@ -101,8 +98,7 @@ class ConversationListViewTest(TestCase):
             location="Test Location",
             postal_code="54321",
             contact_info="test2@example.com",
-            price=199.99,
-            image='image3.jpg'
+            price=199.99
         )
         self.client.login(username='testuser', password='testpass')
 
@@ -147,8 +143,7 @@ class ConversationDetailViewTests(TestCase):
             location="Test Location",
             postal_code="12345",
             contact_info="test@example.com",
-            price=99.99,
-            image='image.jpg'
+            price=99.99
         )
         self.chat = Chat.objects.create(ad=self.ad)
         self.chat.users.set([self.user, self.user2])
@@ -193,8 +188,7 @@ class ConversationMessageSendViewTests(TestCase):
             location="Test Location",
             postal_code="12345",
             contact_info="test@example.com",
-            price=99.99,
-            image='image.jpg'
+            price=99.99
         )
         self.chat = Chat.objects.create(ad=self.ad)
         self.chat.users.set([self.user, self.user2])
@@ -238,8 +232,7 @@ class ConversationMessageEditViewTests(TestCase):
             location="Test Location",
             postal_code="12345",
             contact_info="test@example.com",
-            price=99.99,
-            image='image.jpg'
+            price=99.99
         )
         self.chat = Chat.objects.create(ad=self.ad)
         self.chat.users.set([self.user, self.user2])
@@ -297,7 +290,6 @@ class ConversationMessagesDeleteViewTests(TestCase):
             postal_code="12345",
             contact_info="test@example.com",
             price=99.99,
-            image='image.jpg'
         )
         self.chat = Chat.objects.create(ad=self.ad)
         self.chat.users.set([self.user, self.user2])
