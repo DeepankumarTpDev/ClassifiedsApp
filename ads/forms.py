@@ -8,7 +8,7 @@ from django.forms import inlineformset_factory
 class AdsForm(forms.ModelForm):
     class Meta:
         model = Ads
-        fields = ("category","title","slug","description",
+        fields = ("category","title","description",
                   "price","tags","location",
                   "postal_code","contact_info","show_contact_info",
                   "event_start_date","event_end_date")
