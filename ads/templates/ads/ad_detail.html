@@ -38,9 +38,9 @@
     </div>
 
     <div class="relative bg-gray-100 p-6 rounded-lg mt-4 shadow-md">
-        <div class="absolute top-2 right-2">
+        <div class="absolute top-2 right-2 flex items-center">
             {% if user.is_authenticated %}
-                <div x-data="likeComponent({{ user_has_liked|lower }}, {{ ad.total_likes }}, '{{ csrf_token }}')" class="flex flex-col items-center justify-end text-right">
+                <div x-data="likeComponent({{ user_has_liked|lower }}, {{ ad.total_likes }}, '{{ csrf_token }}')" class="flex items-center justify-end">
                     <a @click="likeAd('{{ ad.category.slug }}', '{{ ad.slug }}')" class="inline-flex items-center justify-end p-2 rounded-full hover:bg-gray-200 transition duration-200">
                         <template x-if="liked">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="currentColor" viewBox="0 0 24 24" stroke="none">
@@ -53,38 +53,36 @@
                             </svg>
                         </template>
                     </a>
-                    <p class="text-sm text-gray-600">
-                        <span x-text="totalLikes"></span>
-                    </p>
+                    <p class="text-sm text-gray-600 ml-2" x-text="totalLikes"></p>
                 </div>
+                {% if ad.user == user %}
+                    <div class="flex space-x-2 ml-4">
+                        <a href="{% url 'ads:ad_edit' category_slug=ad.category.slug ad_slug=ad.slug %}" class="p-2" onmouseover="this.setAttribute('title', 'Edit Ad')" onmouseout="this.removeAttribute('title')">
+                            <i class="fas fa-edit text-gray-600"></i>
+                        </a>
+                        <a href="{% url 'ads:ad_delete' category_slug=ad.category.slug ad_slug=ad.slug %}" class="p-2" onmouseover="this.setAttribute('title', 'Delete Ad')" onmouseout="this.removeAttribute('title')">
+                            <i class="fas fa-trash-alt text-gray-600"></i>
+                        </a>
+                        <form action="{% url 'ads:toggle_contact_info' category_slug=ad.category.slug ad_slug=ad.slug %}" method="POST" id="toggle-contact-form" class="flex items-center">
+                            {% csrf_token %}
+                            <input type="hidden" name="ad_id" value="{{ ad.id }}">
+                            <input type="hidden" name="show_contact_info" value="{{ ad.show_contact_info|yesno:'True,False' }}">
+                            
+                            <span class="cursor-pointer" onclick="document.getElementById('toggle-contact-form').submit()">
+                                {% if ad.show_contact_info %}
+                                    <i class="fas fa-user-slash text-red-500" title="Hide Contact Info"></i>
+                                {% else %}
+                                    <i class="fas fa-user text-gray-600" title="Show Contact Info"></i>
+                                {% endif %}
+                            </span>
+                        </form>
+                    </div>
+                {% endif %}
             {% endif %}
-            {% if ad.user == user %}
-                <div class="flex space-x-2">
-                    <a href="{% url 'ads:ad_edit' category_slug=ad.category.slug ad_slug=ad.slug %}" class="p-2" onmouseover="this.setAttribute('title', 'Edit Ad')" onmouseout="this.removeAttribute('title')">
-                        <i class="fas fa-edit text-gray-600"></i>
-                    </a>
-                    <a href="{% url 'ads:ad_delete' category_slug=ad.category.slug ad_slug=ad.slug %}" class="p-2" onmouseover="this.setAttribute('title', 'Delete Ad')" onmouseout="this.removeAttribute('title')">
-                        <i class="fas fa-trash-alt text-gray-600"></i>
-                    </a>
-                    <form action="{% url 'ads:toggle_contact_info' category_slug=ad.category.slug ad_slug=ad.slug %}" method="POST" id="toggle-contact-form" class="flex items-center p-2">
-                        {% csrf_token %}
-                        <input type="hidden" name="ad_id" value="{{ ad.id }}">
-                        <input type="hidden" name="show_contact_info" value="{{ ad.show_contact_info|yesno:'True,False' }}">
-
-                        <span class="cursor-pointer" onclick="document.getElementById('toggle-contact-form').submit()">
-                            {% if ad.show_contact_info %}
-                                <i class="fas fa-user-slash text-red-500" title="Hide Contact Info"></i> <!-- Icon for hiding contact info -->
-                            {% else %}
-                                <i class="fas fa-user text-gray-600" title="Show Contact Info"></i> <!-- Icon for showing contact info -->
-                            {% endif %}
-                        </span>
-                    </form>
-                </div>
-            {% endif %}
-        </div>
+        </div>        
 
         <h2 class="text-lg font-bold text-gray-800 mt-4">Description:</h2>
-        <p class="mt-2 text-gray-600">{{ ad.description }}</p>
+        <p class="mt-2 text-gray-600">{{ ad.description|safe|linebreaks }}</p>
 
         <hr class="my-4">
 
