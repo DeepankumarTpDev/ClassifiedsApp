@@ -231,4 +231,15 @@ class UserRegistrationTests(TestCase):
         self.assertEqual(response.status_code, 200)  
         self.assertContains(response, 'This field is required.')
 
-
+    def test_invalid_phone_number(self):
+        response = self.client.post(reverse('register'), {
+            'username': 'validuse',
+            'password': 'ValidPassword123',
+            'password2': 'ValidPassword123',
+            'email': 'validuser@example.com',
+            'date_of_birth': '2000-01-01',
+            'phone_number': 'fsfsd',
+            'address': '123 Test St',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Give Valid mobile number.')

@@ -15,7 +15,7 @@ class Profile(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.user.username} : {self.user_type} Profile"
+        return f"{self.user.username} Profile"
     
     def clean(self):
         if len(self.phone_number) > 15:

@@ -2,6 +2,8 @@
 from django import forms
 from django.contrib.auth.models import User
 from .models import Profile
+import re
+from django.core.exceptions import ValidationError
 
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(label='Password', widget=forms.PasswordInput)
@@ -26,3 +28,12 @@ class ProfileForm(forms.ModelForm):
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
         }
+
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data.get('phone_number')
+        mobile_regex = r'^\d{15}$'
+            
+        if not (re.match(mobile_regex, phone_number)):
+            raise ValidationError("Give Valid mobile number.")
+            
+        return phone_number
