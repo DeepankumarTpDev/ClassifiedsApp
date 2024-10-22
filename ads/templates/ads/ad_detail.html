@@ -11,30 +11,29 @@
 
     <div class="container mx-auto mt-8">    
         <div x-data="{ currentSlide: 0, totalSlides: {{ ad.images.count }} }" 
-         x-init="setInterval(() => { currentSlide = (currentSlide + 1) % totalSlides }, 4000)" 
-         class="mt-6 relative">
-        <div class="overflow-hidden h-[400px] w-[600px]"> 
+             x-init="setInterval(() => { currentSlide = (currentSlide + 1) % totalSlides }, 4000)" 
+             class="relative w-full max-w-4xl mx-auto overflow-hidden h-96">
             <div class="flex transition-transform duration-700 ease-in-out" 
                  :style="'transform: translateX(-' + (currentSlide * 100) + '%);'" 
                  id="carousel">
                 {% for image in ad.images.all %}
-                <div class="min-w-full h-full"> 
+                <div class="min-w-full flex items-center justify-center h-96">
                     <img src="{{ image.image.url }}" alt="{{ ad.title }}" 
-                         class="w-full h-full object-cover rounded-lg shadow-md">
+                        class="object-contain w-full h-full shadow-md"> 
                 </div>
                 {% empty %}
                 <p>No images available for this ad.</p>
                 {% endfor %}
             </div>
+            <button @click="currentSlide = (currentSlide === 0 ? totalSlides - 1 : currentSlide - 1)" 
+                    class="absolute top-1/2 left-2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-200 transition duration-200">
+                &#10094;
+            </button>
+            <button @click="currentSlide = (currentSlide === totalSlides - 1 ? 0 : currentSlide + 1)" 
+                    class="absolute top-1/2 right-2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-200 transition duration-200">
+                &#10095;
+            </button>
         </div>
-        <button @click="currentSlide = (currentSlide === 0 ? totalSlides - 1 : currentSlide - 1)" 
-                class="absolute top-1/2 left-2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-200 transition duration-200">
-            &#10094;
-        </button>
-        <button @click="currentSlide = (currentSlide === totalSlides - 1 ? 0 : currentSlide + 1)" 
-                class="absolute top-1/2 right-2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-200 transition duration-200">
-            &#10095;
-        </button>
     </div>
 
     <div class="relative bg-gray-100 p-6 rounded-lg mt-4 shadow-md">
